@@ -8,7 +8,7 @@ from views.templates_view import show_templates
 
 def create_main_window():
     root = tk.Tk()
-    root.title("INO Tool")
+    root.title("EAD OPS Tool")
     root.geometry("1000x750")
 
     menu_bar = tk.Menu(root)

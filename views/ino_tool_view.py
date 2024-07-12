@@ -10,7 +10,6 @@ def show_ino_tool(root, main_frame):
     frame = tk.Frame(main_frame)
     frame.pack(fill="both", expand=True)
 
-    # Input frame with paste buttons and source text
     input_frame = tk.Frame(frame)
     input_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
@@ -95,8 +94,22 @@ def show_ino_tool(root, main_frame):
     ))
     show_map_button.grid(row=0, column=0, padx=5, pady=5)
 
+    # Original text label
+    original_label = tk.Label(original_frame, text="Original COORDs")
+    original_label.grid(row=1, column=0, padx=5, pady=5)
+
+    # Original text
     original_text = tk.Text(original_frame, height=14, width=20)
-    original_text.grid(row=1, column=0, padx=5, pady=5)
+    original_text.grid(row=2, column=0, padx=5, pady=5)
+
+    # Copy button to replace Windows clipboard with original text
+    copy_button = tk.Button(original_frame, text="Copy", command=lambda: copy_to_clipboard(root, original_text.get("1.0", tk.END)))
+    copy_button.grid(row=3, column=0, padx=5, pady=5)
+
+    def copy_to_clipboard(root, text):
+        root.clipboard_clear()
+        root.clipboard_append(text)
+        root.update()  
 
     # Original canvas
     original_canvas = tk.Canvas(frame, bg="white", width=300, height=300)
@@ -106,8 +119,16 @@ def show_ino_tool(root, main_frame):
     sorted_frame = tk.Frame(frame)
     sorted_frame.grid(row=1, column=2, rowspan=2, sticky="nsew", padx=5, pady=5)
 
+    # Sorted text label
+    sorted_label = tk.Label(sorted_frame, text="Sorted COORDs")
+    sorted_label.grid(row=0, column=0, padx=5, pady=5)
+
     sorted_text = tk.Text(sorted_frame, height=14, width=20)
-    sorted_text.grid(row=0, column=0, padx=5, pady=5)
+    sorted_text.grid(row=1, column=0, padx=5, pady=5)
+
+    # Copy button to replace Windows clipboard with sorted text
+    copy_button = tk.Button(sorted_frame, text="Copy", command=lambda: copy_to_clipboard(root, sorted_text.get("1.0", tk.END)))
+    copy_button.grid(row=2, column=0, padx=5, pady=5)
 
     # Sorted canvas
     sorted_canvas = tk.Canvas(frame, bg="white", width=300, height=300)
