@@ -1,0 +1,6 @@
+*.xlsx
+*.json
+*/templates
+__pycache__
+*.zip
+*-bak
