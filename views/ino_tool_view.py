@@ -1,6 +1,7 @@
 import tkinter as tk
 from utils.clipboard_utils import paste_from_clipboard
 from utils.drawing_utils import show_on_map
+from utils.button_utils import copy_to_clipboard
 
 def show_ino_tool(root, main_frame):
     # Clear the main frame
@@ -99,20 +100,16 @@ def show_ino_tool(root, main_frame):
     original_label.grid(row=1, column=0, padx=5, pady=5)
 
     # Original text
-    original_text = tk.Text(original_frame, height=14, width=20)
+    original_text = tk.Text(original_frame, height=14, width=15)
     original_text.grid(row=2, column=0, padx=5, pady=5)
 
     # Copy button to replace Windows clipboard with original text
-    copy_button = tk.Button(original_frame, text="Copy", command=lambda: copy_to_clipboard(root, original_text.get("1.0", tk.END)))
+    copy_button = tk.Button(original_frame, text="Copy")
     copy_button.grid(row=3, column=0, padx=5, pady=5)
-
-    def copy_to_clipboard(root, text):
-        root.clipboard_clear()
-        root.clipboard_append(text)
-        root.update()  
+    copy_button.config(command=lambda: copy_to_clipboard(root, original_text.get("1.0", tk.END).strip(), copy_button))
 
     # Original canvas
-    original_canvas = tk.Canvas(frame, bg="white", width=300, height=300)
+    original_canvas = tk.Canvas(frame, bg="white", width=320, height=320)
     original_canvas.grid(row=0, column=3, padx=5, pady=5)
 
     # Sorted frame with sorted text
@@ -123,15 +120,16 @@ def show_ino_tool(root, main_frame):
     sorted_label = tk.Label(sorted_frame, text="Sorted COORDs")
     sorted_label.grid(row=0, column=0, padx=5, pady=5)
 
-    sorted_text = tk.Text(sorted_frame, height=14, width=20)
+    sorted_text = tk.Text(sorted_frame, height=14, width=15)
     sorted_text.grid(row=1, column=0, padx=5, pady=5)
 
     # Copy button to replace Windows clipboard with sorted text
-    copy_button = tk.Button(sorted_frame, text="Copy", command=lambda: copy_to_clipboard(root, sorted_text.get("1.0", tk.END)))
-    copy_button.grid(row=2, column=0, padx=5, pady=5)
+    sorted_copy_button = tk.Button(sorted_frame, text="Copy")
+    sorted_copy_button.grid(row=2, column=0, padx=5, pady=5)
+    sorted_copy_button.config(command=lambda: copy_to_clipboard(root, sorted_text.get("1.0", tk.END).strip(), sorted_copy_button))
 
     # Sorted canvas
-    sorted_canvas = tk.Canvas(frame, bg="white", width=300, height=300)
+    sorted_canvas = tk.Canvas(frame, bg="white", width=320, height=320)
     sorted_canvas.grid(row=1, column=3, padx=5, pady=5)
 
     # Configure grid weights for responsiveness

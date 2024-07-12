@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 import os
 import json
+from functools import partial
+from utils.button_utils import copy_to_clipboard
 
 TEMPLATES_DIR = "templates"
 ORDER_FILE = "templates_order.json"
@@ -58,12 +60,10 @@ def show_templates(root, main_frame):
         cancel_button = tk.Button(editor_window, text="Cancel", command=cancel_editor)
         cancel_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
-    def copy_template(template_name):
+    def copy_template(template_name, button):
         with open(os.path.join(TEMPLATES_DIR, f"{template_name}.json"), "r") as file:
             template_content = json.load(file)["content"]
-        root.clipboard_clear()
-        root.clipboard_append(template_content)
-        messagebox.showinfo("Copied", f"Template '{template_name}' copied to clipboard.")
+        copy_to_clipboard(root, template_content, button)
 
     def edit_template(template_name):
         open_editor(template_name)
@@ -119,19 +119,20 @@ def show_templates(root, main_frame):
             template_label = tk.Label(template_frame, text=template, anchor="w")
             template_label.pack(side=tk.LEFT, fill="x", expand=True)
 
-            copy_button = tk.Button(template_frame, text="Copy", command=lambda t=template: copy_template(t))
+            copy_button = tk.Button(template_frame, text="Copy")
             copy_button.pack(side=tk.LEFT, padx=5)
+            copy_button.configure(command=partial(copy_template, template, copy_button))
 
-            edit_button = tk.Button(template_frame, text="Edit", command=lambda t=template: edit_template(t))
+            edit_button = tk.Button(template_frame, text="Edit", command=partial(edit_template, template))
             edit_button.pack(side=tk.LEFT, padx=5)
 
-            delete_button = tk.Button(template_frame, text="Delete", command=lambda t=template: delete_template(t))
+            delete_button = tk.Button(template_frame, text="Delete", command=partial(delete_template, template))
             delete_button.pack(side=tk.LEFT, padx=5)
 
-            up_button = tk.Button(template_frame, text="Up", command=lambda t=template: move_template_up(t))
+            up_button = tk.Button(template_frame, text="Up", command=partial(move_template_up, template))
             up_button.pack(side=tk.LEFT, padx=5)
 
-            down_button = tk.Button(template_frame, text="Down", command=lambda t=template: move_template_down(t))
+            down_button = tk.Button(template_frame, text="Down", command=partial(move_template_down, template))
             down_button.pack(side=tk.LEFT, padx=5)
 
 # Example usage with a Tkinter window

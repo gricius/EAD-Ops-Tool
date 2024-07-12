@@ -14,6 +14,9 @@ def paste_from_clipboard(root, source_text, original_text=None, sorted_text=None
         original_text.delete("1.0", tk.END)
         if coords:
             original_text.insert(tk.END, "\n".join(coords))
+            # paaste to clipboard
+            root.clipboard_clear()
+            root.clipboard_append("\n".join(coords))
         else:
             original_text.insert(tk.END, "No valid format coordinates found. Supported formats are: DD MM[NS] DDD MM [EW], DD MM SS[NS] DDD MM SS[EW], DD MM SS.d2(4)[NS] DDD MM SS.d2[4][EW]")
     
