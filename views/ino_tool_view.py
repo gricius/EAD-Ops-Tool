@@ -26,22 +26,22 @@ def show_ino_tool(root, main_frame):
 
     km_label = tk.Label(conversion_frame, text="KM")
     km_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    km_entry = tk.Entry(conversion_frame)
+    km_entry = tk.Entry(conversion_frame, width=10)
     km_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
     nm_label = tk.Label(conversion_frame, text="NM")
     nm_label.grid(row=0, column=2, padx=5, pady=5, sticky="e")
-    nm_entry = tk.Entry(conversion_frame)
+    nm_entry = tk.Entry(conversion_frame, width=10)
     nm_entry.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
     mt_label = tk.Label(conversion_frame, text="MT")
     mt_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    mt_entry = tk.Entry(conversion_frame)
+    mt_entry = tk.Entry(conversion_frame, width=10)
     mt_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
     ft_label = tk.Label(conversion_frame, text="FT")
     ft_label.grid(row=1, column=2, padx=5, pady=5, sticky="e")
-    ft_entry = tk.Entry(conversion_frame)
+    ft_entry = tk.Entry(conversion_frame, width=10)
     ft_entry.grid(row=1, column=3, padx=5, pady=5, sticky="w")
 
     def convert_km_to_nm(event):
