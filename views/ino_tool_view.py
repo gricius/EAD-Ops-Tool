@@ -14,9 +14,10 @@ def show_ino_tool(root, main_frame):
     input_frame = tk.Frame(frame)
     input_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=lambda: paste_from_clipboard(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas))
+    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=lambda: paste_from_clipboard(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas, original_frame))
     paste_coord_button.grid(row=0, column=0, padx=5, pady=5)
 
+    # clear the text area on click
     source_text = tk.Text(input_frame, height=20, width=30)
     source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 

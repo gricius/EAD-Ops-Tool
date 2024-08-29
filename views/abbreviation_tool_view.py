@@ -35,6 +35,42 @@ def search_abbreviation(abbr_text, decoded_text, result_text):
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
+def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry):
+    try:
+        df = pd.read_excel(excel_file, sheet_name="UPPER_TABLE")
+        nof_value = nof_entry.get().strip().upper()
+        height_value = height_entry.get().strip()
+        uom_value = uom_var.get()
+
+        if len(nof_value) < 1 or len(nof_value) > 4:
+            raise ValueError("NOF must be between 1 and 4 characters long")
+
+        result = df[df.iloc[:, 0].str.upper() == nof_value]
+
+        if result.empty:
+            result_entry.delete(0, tk.END)
+            result_entry.insert(0, "No match found")
+            return
+
+        if not height_value:
+            selected_value = result.iloc[0, 5]  # Column F
+        else:
+            height_value = float(height_value)
+            if uom_value == "M":
+                selected_value = result.iloc[0, 3]  # Column D
+                selected_value += height_value
+                selected_value = selected_value / 0.31  # Convert to feet
+            elif uom_value == "FT":
+                selected_value = result.iloc[0, 4]  # Column E
+                selected_value += height_value
+            selected_value = selected_value / 100  # Convert to hundreds of feet
+
+        result_entry.delete(0, tk.END)
+        result_entry.insert(0, f"{selected_value:.0f}")
+
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
 def show_abbreviation_tool(root, main_frame):
     # Clear the main frame
     for widget in main_frame.winfo_children():
@@ -59,3 +95,42 @@ def show_abbreviation_tool(root, main_frame):
 
     result_text = tk.Text(frame, height=15, width=80)
     result_text.grid(row=1, column=0, padx=10, pady=10)
+
+    # Flight Level Calculator
+    fl_frame = tk.Frame(frame)
+    fl_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+
+    tk.Label(fl_frame, text="NOF").grid(row=0, column=0)
+    nof_entry = tk.Entry(fl_frame, width=10)
+    nof_entry.grid(row=0, column=1, padx=5)
+
+    tk.Label(fl_frame, text="UOM").grid(row=0, column=2)
+    uom_var = tk.StringVar(value="M")
+    uom_m = tk.Radiobutton(fl_frame, text="M", variable=uom_var, value="M")
+    uom_m.grid(row=0, column=3, padx=5)
+    uom_ft = tk.Radiobutton(fl_frame, text="FT", variable=uom_var, value="FT")
+    uom_ft.grid(row=0, column=4, padx=5)
+
+    tk.Label(fl_frame, text="Height").grid(row=1, column=0)
+    height_entry = tk.Entry(fl_frame, width=10)
+    height_entry.grid(row=1, column=1, padx=5)
+
+    calculate_button = tk.Button(fl_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, result_entry))
+    calculate_button.grid(row=1, column=2, columnspan=3, pady=5)
+
+    result_label = tk.Label(fl_frame, text="Result")
+    result_label.grid(row=2, column=0)
+    result_entry = tk.Entry(fl_frame, width=20)
+    result_entry.grid(row=2, column=1, padx=5)
+
+# Example usage with a Tkinter window
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Abbreviation Tool")
+
+    main_frame = tk.Frame(root)
+    main_frame.pack(fill="both", expand=True)
+
+    show_abbreviation_tool(root, main_frame)
+
+    root.mainloop()

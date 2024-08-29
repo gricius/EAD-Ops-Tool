@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from utils.coordinate_utils import parse_coordinate
 
 def draw_coordinates(coords, canvas):
@@ -46,7 +47,7 @@ def draw_coordinates(coords, canvas):
 
 def plot_coordinates(original_coords, sorted_coords):
     """
-    Plots original and sorted coordinates on a map using Basemap and matplotlib.
+    Plots original and sorted coordinates on a map using Cartopy and matplotlib.
     """
     parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
     parsed_sorted_coords = [parse_coordinate(coord) for coord in sorted_coords]
@@ -61,32 +62,32 @@ def plot_coordinates(original_coords, sorted_coords):
     original_lats, original_lons = zip(*parsed_original_coords)
     sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw={'projection': ccrs.Miller()})
 
-    m = Basemap(projection='mill', llcrnrlat=-60, urcrnrlat=90, llcrnrlon=-180, urcrnrlon=180, resolution='c', ax=ax)
-    m.drawcoastlines()
-    m.drawcountries()
-    m.drawmapboundary(fill_color='aqua')
-    m.fillcontinents(color='lightgreen', lake_color='aqua')
+    # Add features to the map
+    ax.add_feature(cfeature.LAND, zorder=0)
+    ax.add_feature(cfeature.OCEAN, zorder=0)
+    ax.add_feature(cfeature.COASTLINE)
+    ax.add_feature(cfeature.BORDERS, linestyle=':')
+    ax.add_feature(cfeature.LAKES, alpha=0.5)
+    ax.add_feature(cfeature.RIVERS)
 
     # Plot original coordinates
-    x, y = m(original_lons, original_lats)
-    m.plot(x, y, marker='o', markersize=5, linestyle='-', color='blue', label='Original Coordinates')
+    ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic(), label='Original Coordinates')
     for i, txt in enumerate(range(1, len(original_lons) + 1)):
-        plt.text(x[i], y[i], txt, fontsize=12, color='blue')
+        ax.text(original_lons[i], original_lats[i], txt, fontsize=12, color='blue', transform=ccrs.Geodetic())
 
     # Plot sorted coordinates
-    x, y = m(sorted_lons, sorted_lats)
-    m.plot(x, y, marker='o', markersize=5, linestyle='-', color='red', label='Sorted Coordinates')
+    ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red', transform=ccrs.Geodetic(), label='Sorted Coordinates')
     for i, txt in enumerate(range(1, len(sorted_lons) + 1)):
-        plt.text(x[i], y[i], txt, fontsize=12, color='red')
+        ax.text(sorted_lons[i], sorted_lats[i], txt, fontsize=12, color='red', transform=ccrs.Geodetic())
 
     plt.legend()
-    plt.title('Original and Sorted coordinates')
+    plt.title('Original and Sorted Coordinates')
     plt.show()
 
 def show_on_map(original_coords, sorted_coords):
     """
-    Show coordinates on the map using matplotlib and Basemap.
+    Show coordinates on the map using matplotlib and Cartopy.
     """
     plot_coordinates(original_coords, sorted_coords)
