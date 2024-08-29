@@ -54,7 +54,13 @@ excel_file = config.get("excel_file_path")
 if not excel_file or not os.path.exists(excel_file):
     excel_file = prompt_for_excel_file()
 
-def search_abbreviation(abbr_text, decoded_text, result_text):
+def copy_to_clipboard(text, widget):
+    """Copy the provided text to the clipboard."""
+    widget.clipboard_clear()
+    widget.clipboard_append(text)
+    widget.update()  # Keeps the clipboard content after the window is closed
+
+def search_abbreviation(abbr_text, decoded_text, result_frame):
     try:
         df = pd.read_excel(excel_file, sheet_name=None)
         results = []
@@ -66,19 +72,24 @@ def search_abbreviation(abbr_text, decoded_text, result_text):
             for sheet_name, sheet_df in df.items():
                 matches = sheet_df[sheet_df.iloc[:, 0].astype(str).str.lower().str.contains(abbr_text, na=False)]
                 for _, row in matches.iterrows():
-                    results.append(f"Abbr: {row.iloc[0]}, Decoded: {row.iloc[1]}, Sheet: {sheet_name}")
+                    results.append((row.iloc[0], row.iloc[1], sheet_name))
 
         if decoded_text:
             for sheet_name, sheet_df in df.items():
                 matches = sheet_df[sheet_df.iloc[:, 1].astype(str).str.lower().str.contains(decoded_text, na=False)]
                 for _, row in matches.iterrows():
-                    results.append(f"Abbr: {row.iloc[0]}, Decoded: {row.iloc[1]}, Sheet: {sheet_name}")
+                    results.append((row.iloc[0], row.iloc[1], sheet_name))
 
-        result_text.delete("1.0", tk.END)
+        # Clear previous results
+        for widget in result_frame.winfo_children():
+            widget.destroy()
+
         if results:
-            result_text.insert(tk.END, "\n".join(results))
+            for i, (abbr, decoded, sheet_name) in enumerate(results):
+                tk.Label(result_frame, text=f"Abbr: {abbr}, Decoded: {decoded}, Sheet: {sheet_name}").grid(row=i, column=0, sticky="w")
+                tk.Button(result_frame, text="Copy", command=lambda d=decoded: copy_to_clipboard(f"[{d}]", result_frame)).grid(row=i, column=1, padx=5)
         else:
-            result_text.insert(tk.END, "No matches found")
+            tk.Label(result_frame, text="No matches found").grid(row=0, column=0)
 
     except Exception as e:
         messagebox.showerror("Error", str(e))
@@ -138,11 +149,11 @@ def show_abbreviation_tool(root, main_frame):
     decoded_entry = tk.Entry(input_frame, width=20)
     decoded_entry.grid(row=1, column=1, padx=5)
 
-    search_button = tk.Button(input_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), result_text))
+    search_button = tk.Button(input_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), result_frame))
     search_button.grid(row=2, column=0, columnspan=2, pady=5)
 
-    result_text = tk.Text(frame, height=15, width=80)
-    result_text.grid(row=1, column=0, padx=10, pady=10)
+    result_frame = tk.Frame(frame)
+    result_frame.grid(row=1, column=0, padx=10, pady=10)
 
     # Flight Level Calculator
     fl_frame = tk.Frame(frame)
