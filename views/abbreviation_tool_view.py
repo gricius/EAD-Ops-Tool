@@ -1,10 +1,58 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import pandas as pd
 import os
+import sys
+import json
 
-# Load the Excel file
-excel_file = os.path.join(os.path.dirname(__file__), "../Abbreviation and Elevation Tool.xlsx")
+CONFIG_FILE = "config.json"
+
+def load_config():
+    """Load configuration from the config file."""
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as file:
+            return json.load(file)
+    return {}
+
+def save_config(config):
+    """Save configuration to the config file."""
+    with open(CONFIG_FILE, "w") as file:
+        json.dump(config, file)
+
+def get_resource_path(file_name):
+    """Get the absolute path to the resource, works for dev and for PyInstaller."""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, file_name)
+
+def prompt_for_excel_file():
+    """Prompt the user to select the Excel file if it's not found or not specified."""
+    file_path = filedialog.askopenfilename(
+        title="Select Excel File",
+        filetypes=[("Excel files", "*.xlsx *.xls")]
+    )
+    if not file_path:
+        messagebox.showerror("Error", "No file selected. The application will exit.")
+        sys.exit()  # Exit the application if no file is selected
+    
+    # Save the selected file path to the config
+    config = load_config()
+    config["excel_file_path"] = file_path
+    save_config(config)
+    
+    return file_path
+
+# Load the configuration
+config = load_config()
+excel_file = config.get("excel_file_path")
+
+# Check if the stored file path exists, if not prompt the user to select a file
+if not excel_file or not os.path.exists(excel_file):
+    excel_file = prompt_for_excel_file()
 
 def search_abbreviation(abbr_text, decoded_text, result_text):
     try:
