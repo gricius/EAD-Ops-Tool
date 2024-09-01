@@ -87,7 +87,7 @@ def search_abbreviation(abbr_text, decoded_text, result_frame):
         if results:
             for i, (abbr, decoded, sheet_name) in enumerate(results):
                 tk.Label(result_frame, text=f"Abbr: {abbr}, Decoded: {decoded}, Sheet: {sheet_name}").grid(row=i, column=0, sticky="w")
-                tk.Button(result_frame, text="Copy", command=lambda d=decoded: copy_to_clipboard(f"[{d}]", result_frame)).grid(row=i, column=1, padx=5)
+                tk.Button(result_frame, text="Copy", command=lambda d=decoded: copy_to_clipboard(f"({d})", result_frame)).grid(row=i, column=1, padx=5)
         else:
             tk.Label(result_frame, text="No matches found").grid(row=0, column=0)
 
@@ -112,17 +112,17 @@ def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry):
             return
 
         if not height_value:
-            selected_value = result.iloc[0, 5]  # Column F
+            selected_value = result.iloc[0, 5]  # Upper table FL
         else:
-            height_value = float(height_value)
             if uom_value == "M":
-                selected_value = result.iloc[0, 3]  # Column D
-                selected_value += height_value
-                selected_value = selected_value / 0.31  # Convert to feet
+                height_value = round(int(height_value) * 3.28084 + 49)  # Convert input height im meters to feet
+                selected_value = result.iloc[0, 5] * 100 # Upper table FL converted to hundreds of feet
+                selected_value = round((selected_value + height_value) / 100) # Convert to hundreds of feet
             elif uom_value == "FT":
-                selected_value = result.iloc[0, 4]  # Column E
-                selected_value += height_value
-            selected_value = selected_value / 100  # Convert to hundreds of feet
+                selected_value = result.iloc[0, 5] * 100 # Upper table FL converted to hundreds of feet
+                height_value = int(height_value)
+                height_value = height_value + 49
+                selected_value = round(selected_value / 100)  # Convert to FL
 
         result_entry.delete(0, tk.END)
         result_entry.insert(0, f"{selected_value:.0f}")

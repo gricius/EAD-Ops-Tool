@@ -2,8 +2,22 @@ import tkinter as tk
 from tkinter import messagebox
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+from cartopy.io.shapereader import Reader
+from cartopy.feature import ShapelyFeature
+from cartopy.io.shapereader import natural_earth
+import sys
+import os
 from utils.coordinate_utils import parse_coordinate
+
+def get_resource_path(relative_path):
+    """ Get the absolute path to the resource, works for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def draw_coordinates(coords, canvas):
     """
@@ -12,7 +26,7 @@ def draw_coordinates(coords, canvas):
     canvas.delete("all")
     if not coords:
         return
-    
+
     try:
         parsed_coords = [parse_coordinate(coord) for coord in coords]
         parsed_coords = [coord for coord in parsed_coords if coord != (None, None)]
@@ -62,15 +76,52 @@ def plot_coordinates(original_coords, sorted_coords):
     original_lats, original_lons = zip(*parsed_original_coords)
     sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
 
-    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw={'projection': ccrs.Miller()})
+    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw={'projection': ccrs.PlateCarree()})
+    
+    # Set the map extent to zoom in on a region
+    ax.set_extent([min(original_lons) - 10, max(original_lons) + 10, min(original_lats) - 10, max(original_lats) + 10], crs=ccrs.PlateCarree())
 
-    # Add features to the map
-    ax.add_feature(cfeature.LAND, zorder=0)
-    ax.add_feature(cfeature.OCEAN, zorder=0)
-    ax.add_feature(cfeature.COASTLINE)
-    ax.add_feature(cfeature.BORDERS, linestyle=':')
-    ax.add_feature(cfeature.LAKES, alpha=0.5)
-    ax.add_feature(cfeature.RIVERS)
+    # Use local shapefiles for features
+    countries_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).geometries(),
+                                   ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    disputed_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).geometries(),
+                                  ccrs.PlateCarree(), edgecolor='red', facecolor='none')
+    disputed_boundaries_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp')).geometries(),
+                                                ccrs.PlateCarree(), edgecolor='red', facecolor='none')
+    airports_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_airports.shp')).geometries(),
+                                    ccrs.PlateCarree(), edgecolor='red', facecolor='none')
+    elevations_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).geometries(),
+                                    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+    land_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_land.shp')).geometries(),
+                                ccrs.PlateCarree(), edgecolor='black', facecolor='tan')
+
+    ax.add_feature(countries_shp, zorder=1)
+    ax.add_feature(disputed_shp, zorder=0)
+    ax.add_feature(disputed_boundaries_shp, zorder=1)
+    ax.add_feature(airports_shp, zorder=1)
+    ax.add_feature(elevations_shp, zorder=1)
+    ax.add_feature(land_shp, zorder=0)
+
+    # Plot country names
+    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).records():
+        country_name = record.attributes['NAME']  # name of the country
+        country_geometry = record.geometry
+        ax.text(country_geometry.centroid.x, country_geometry.centroid.y, country_name,
+                fontsize=8, color='black', transform=ccrs.PlateCarree())
+        
+    # Plot airports
+    for record in Reader(get_resource_path('shapes/ne_50m_airports.shp')).records():
+        airport_name = record.attributes['gps_code']  # icao code
+        airport_geometry = record.geometry
+        ax.plot(airport_geometry.x, airport_geometry.y, marker='o', markersize=5, linestyle='-', color='red', transform=ccrs.Geodetic())
+        ax.text(airport_geometry.x, airport_geometry.y, airport_name, fontsize=8, color='black', transform=ccrs.Geodetic())
+
+    # Plot elevations
+    for record in Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).records():
+        elevation_name = record.attributes['name']  # name of the elevation
+        elevation_geometry = record.geometry
+        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y, elevation_name,
+                fontsize=8, color='black', transform=ccrs.PlateCarree())
 
     # Plot original coordinates
     ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic(), label='Original Coordinates')

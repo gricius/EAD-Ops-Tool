@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['main.pyw'],
+    ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('shapes/ne_10m_land.shp', '.'), ('shapes/ne_10m_land.shx', '.'), ('shapes/ne_10m_land.dbf', '.'), ('shapes/ne_10m_admin_0_boundary_lines_land.shp', '.'), ('shapes/ne_10m_admin_0_boundary_lines_land.shx', '.'), ('shapes/ne_10m_admin_0_boundary_lines_land.dbf', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -29,7 +29,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
