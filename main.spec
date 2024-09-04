@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('shapes/ne_10m_land.shp', '.'), ('shapes/ne_10m_land.shx', '.'), ('shapes/ne_10m_land.dbf', '.'), ('shapes/ne_10m_admin_0_boundary_lines_land.shp', '.'), ('shapes/ne_10m_admin_0_boundary_lines_land.shx', '.'), ('shapes/ne_10m_admin_0_boundary_lines_land.dbf', '.')],
+    datas=[('shapes/*.shp', 'shapes'), ('shapes/*.dbf', 'shapes'), ('shapes/*.shx', 'shapes')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

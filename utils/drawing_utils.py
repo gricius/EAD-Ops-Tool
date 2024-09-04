@@ -14,7 +14,7 @@ def get_resource_path(relative_path):
     try:
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
-    except Exception:
+    except AttributeError:
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
@@ -76,10 +76,10 @@ def plot_coordinates(original_coords, sorted_coords):
     original_lats, original_lons = zip(*parsed_original_coords)
     sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
 
-    fig, ax = plt.subplots(figsize=(10, 8), subplot_kw={'projection': ccrs.PlateCarree()})
+    fig, ax = plt.subplots(figsize=(12, 10), subplot_kw={'projection': ccrs.PlateCarree()})
     
     # Set the map extent to zoom in on a region
-    ax.set_extent([min(original_lons) - 10, max(original_lons) + 10, min(original_lats) - 10, max(original_lats) + 10], crs=ccrs.PlateCarree())
+    ax.set_extent([min(original_lons) - 1, max(original_lons) + 1, min(original_lats) - 1, max(original_lats) + 1], crs=ccrs.PlateCarree())
 
     # Use local shapefiles for features
     countries_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).geometries(),
@@ -121,6 +121,15 @@ def plot_coordinates(original_coords, sorted_coords):
         elevation_name = record.attributes['name']  # name of the elevation
         elevation_geometry = record.geometry
         ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y, elevation_name,
+                fontsize=8, color='black', transform=ccrs.PlateCarree())
+        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y + 0.3, f"{record.attributes['elevation']} M",
+                fontsize=9, color='black', transform=ccrs.PlateCarree())
+        
+    # plot disputed territories names
+    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).records():
+        disputed_name = record.attributes['BRK_NAME']  # name of the disputed territory
+        disputed_geometry = record.geometry
+        ax.text(disputed_geometry.centroid.x, disputed_geometry.centroid.y, disputed_name,
                 fontsize=8, color='black', transform=ccrs.PlateCarree())
 
     # Plot original coordinates
