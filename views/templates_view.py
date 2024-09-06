@@ -135,6 +135,9 @@ def show_templates(root, main_frame):
             down_button = tk.Button(template_frame, text="Down", command=partial(move_template_down, template))
             down_button.pack(side=tk.LEFT, padx=5)
 
+            separator = tk.Frame(templates_list, height=1, bg="gray")
+            separator.pack(fill="x", padx=10, pady=5)
+
 # Example usage with a Tkinter window
 if __name__ == "__main__":
     root = tk.Tk()
