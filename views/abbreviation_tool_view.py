@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 from tkinter import messagebox, filedialog
 import pandas as pd
 import os
@@ -95,8 +94,8 @@ def create_result_widgets(result_frame, index, abbr, decoded, sheet_name):
     copy_button.grid(row=2 * index, column=1, padx=5)
     copy_button.config(command=lambda d=decoded, b=copy_button: copy_to_clipboard(result_frame, f"({d})", b))
 
-    separator = ttk.Separator(result_frame, orient="horizontal")
-    separator.grid(row=2 * index + 1, column=0, columnspan=2, pady=(5, 10), sticky="ew")
+    # separator
+    tk.Frame(result_frame, height=1, width=300, bg="black").grid(row=2 * index + 1, column=0, columnspan=2, pady=5)
 
 def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry):
     try:
