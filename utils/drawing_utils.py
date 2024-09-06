@@ -7,6 +7,8 @@ from cartopy.feature import ShapelyFeature
 from cartopy.io.shapereader import natural_earth
 import sys
 import os
+from shapely.geometry import Point
+from cartopy.crs import Mercator, PlateCarree
 from utils.coordinate_utils import parse_coordinate
 
 def get_resource_path(relative_path):
@@ -16,7 +18,6 @@ def get_resource_path(relative_path):
         base_path = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
-
     return os.path.join(base_path, relative_path)
 
 def draw_coordinates(coords, canvas):
@@ -79,55 +80,61 @@ def plot_coordinates(original_coords, sorted_coords):
     fig, ax = plt.subplots(figsize=(12, 10), subplot_kw={'projection': ccrs.PlateCarree()})
     
     # Set the map extent to zoom in on a region
-    ax.set_extent([min(original_lons) - 1, max(original_lons) + 1, min(original_lats) - 1, max(original_lats) + 1], crs=ccrs.PlateCarree())
+    map_extent = [min(original_lons) - 3, max(original_lons) + 3, min(original_lats) - 3, max(original_lats) + 3]
+    ax.set_extent(map_extent, crs=ccrs.PlateCarree())
 
     # Use local shapefiles for features
     countries_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).geometries(),
-                                   ccrs.PlateCarree(), edgecolor='black', facecolor='none')
+                                   ccrs.PlateCarree(), edgecolor='black', facecolor='tan')
     disputed_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).geometries(),
                                   ccrs.PlateCarree(), edgecolor='red', facecolor='none')
     disputed_boundaries_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp')).geometries(),
-                                                ccrs.PlateCarree(), edgecolor='red', facecolor='none')
-    airports_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_airports.shp')).geometries(),
-                                    ccrs.PlateCarree(), edgecolor='red', facecolor='none')
+                                             ccrs.PlateCarree(), edgecolor='red', facecolor='none')
     elevations_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).geometries(),
                                     ccrs.PlateCarree(), edgecolor='black', facecolor='none')
-    land_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_land.shp')).geometries(),
-                                ccrs.PlateCarree(), edgecolor='black', facecolor='tan')
-
+    
     ax.add_feature(countries_shp, zorder=1)
     ax.add_feature(disputed_shp, zorder=0)
     ax.add_feature(disputed_boundaries_shp, zorder=1)
-    ax.add_feature(airports_shp, zorder=1)
     ax.add_feature(elevations_shp, zorder=1)
-    ax.add_feature(land_shp, zorder=0)
+
 
     # Plot country names
     for record in Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).records():
-        country_name = record.attributes['NAME']  # name of the country
+        country_name = record.attributes['NAME']
         country_geometry = record.geometry
         ax.text(country_geometry.centroid.x, country_geometry.centroid.y, country_name,
                 fontsize=8, color='black', transform=ccrs.PlateCarree())
-        
-    # Plot airports
-    for record in Reader(get_resource_path('shapes/ne_50m_airports.shp')).records():
-        airport_name = record.attributes['gps_code']  # icao code
+
+    # Plot airports within the map extent, transforming from Mercator to PlateCarree
+    airports_reader = Reader(get_resource_path('shapes/world_airports.shp'))
+    mercator_proj = Mercator()  # Mercator projection for the airports
+    platecarree_proj = PlateCarree()  # Target projection for plotting
+    
+    for record in airports_reader.records():
         airport_geometry = record.geometry
-        ax.plot(airport_geometry.x, airport_geometry.y, marker='o', markersize=5, linestyle='-', color='red', transform=ccrs.Geodetic())
-        ax.text(airport_geometry.x, airport_geometry.y, airport_name, fontsize=8, color='black', transform=ccrs.Geodetic())
+        if isinstance(airport_geometry, Point):
+            # Transform airport coordinates from Mercator to PlateCarree
+            lon, lat = platecarree_proj.transform_point(airport_geometry.x, airport_geometry.y, mercator_proj)
+            if map_extent[0] <= lon <= map_extent[1] and map_extent[2] <= lat <= map_extent[3]:
+                airport_ident = record.attributes['ident']
+                airport_name = record.attributes['name']
+                airport_ident_name = f"{airport_ident} - {airport_name}"
+                ax.text(lon - 0.05, lat, '✈', fontsize=8, color='red', transform=ccrs.PlateCarree())
+                ax.text(lon, lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
 
     # Plot elevations
     for record in Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).records():
-        elevation_name = record.attributes['name']  # name of the elevation
+        elevation_name = record.attributes['name']
         elevation_geometry = record.geometry
         ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y, elevation_name,
                 fontsize=8, color='black', transform=ccrs.PlateCarree())
         ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y + 0.3, f"{record.attributes['elevation']} M",
                 fontsize=9, color='black', transform=ccrs.PlateCarree())
-        
-    # plot disputed territories names
+
+    # Plot disputed territories names
     for record in Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).records():
-        disputed_name = record.attributes['BRK_NAME']  # name of the disputed territory
+        disputed_name = record.attributes['BRK_NAME']
         disputed_geometry = record.geometry
         ax.text(disputed_geometry.centroid.x, disputed_geometry.centroid.y, disputed_name,
                 fontsize=8, color='black', transform=ccrs.PlateCarree())

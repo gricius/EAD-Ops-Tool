@@ -4,3 +4,6 @@
 __pycache__
 *.zip
 *-bak
+*/build
+*/dist
+*/shapes

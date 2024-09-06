@@ -1,9 +1,11 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox, filedialog
 import pandas as pd
 import os
 import sys
 import json
+from utils.button_utils import copy_to_clipboard
 
 CONFIG_FILE = "config.json"
 
@@ -22,11 +24,9 @@ def save_config(config):
 def get_resource_path(file_name):
     """Get the absolute path to the resource, works for dev and for PyInstaller."""
     try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
-    except Exception:
+    except AttributeError:
         base_path = os.path.abspath(".")
-
     return os.path.join(base_path, file_name)
 
 def prompt_for_excel_file():
@@ -39,46 +39,40 @@ def prompt_for_excel_file():
         messagebox.showerror("Error", "No file selected. The application will exit.")
         sys.exit()  # Exit the application if no file is selected
     
-    # Save the selected file path to the config
     config = load_config()
     config["excel_file_path"] = file_path
     save_config(config)
     
     return file_path
 
-# Load the configuration
+def load_excel_data(file_path):
+    """Load the Excel data from the given file path."""
+    return pd.read_excel(file_path, sheet_name=None)
+
+# Load configuration and Excel file
 config = load_config()
 excel_file = config.get("excel_file_path")
-
-# Check if the stored file path exists, if not prompt the user to select a file
 if not excel_file or not os.path.exists(excel_file):
     excel_file = prompt_for_excel_file()
 
-def copy_to_clipboard(text, widget):
-    """Copy the provided text to the clipboard."""
-    widget.clipboard_clear()
-    widget.clipboard_append(text)
-    widget.update()  # Keeps the clipboard content after the window is closed
+# Load the Excel data
+excel_data = load_excel_data(excel_file)
 
 def search_abbreviation(abbr_text, decoded_text, result_frame):
     try:
-        df = pd.read_excel(excel_file, sheet_name=None)
         results = []
 
         abbr_text = abbr_text.lower()
         decoded_text = decoded_text.lower()
 
-        if abbr_text:
-            for sheet_name, sheet_df in df.items():
+        for sheet_name, sheet_df in excel_data.items():
+            if abbr_text:
                 matches = sheet_df[sheet_df.iloc[:, 0].astype(str).str.lower().str.contains(abbr_text, na=False)]
-                for _, row in matches.iterrows():
-                    results.append((row.iloc[0], row.iloc[1], sheet_name))
-
-        if decoded_text:
-            for sheet_name, sheet_df in df.items():
+                results.extend((row.iloc[0], row.iloc[1], sheet_name) for _, row in matches.iterrows())
+                
+            if decoded_text:
                 matches = sheet_df[sheet_df.iloc[:, 1].astype(str).str.lower().str.contains(decoded_text, na=False)]
-                for _, row in matches.iterrows():
-                    results.append((row.iloc[0], row.iloc[1], sheet_name))
+                results.extend((row.iloc[0], row.iloc[1], sheet_name) for _, row in matches.iterrows())
 
         # Clear previous results
         for widget in result_frame.winfo_children():
@@ -86,13 +80,23 @@ def search_abbreviation(abbr_text, decoded_text, result_frame):
 
         if results:
             for i, (abbr, decoded, sheet_name) in enumerate(results):
-                tk.Label(result_frame, text=f"Abbr: {abbr}, Decoded: {decoded}, Sheet: {sheet_name}").grid(row=i, column=0, sticky="w")
-                tk.Button(result_frame, text="Copy", command=lambda d=decoded: copy_to_clipboard(f"({d})", result_frame)).grid(row=i, column=1, padx=5)
+                create_result_widgets(result_frame, i, abbr, decoded, sheet_name)
         else:
             tk.Label(result_frame, text="No matches found").grid(row=0, column=0)
 
     except Exception as e:
-        messagebox.showerror("Error", str(e))
+        messagebox.showerror("Error", f"An error occurred during search: {e}")
+
+def create_result_widgets(result_frame, index, abbr, decoded, sheet_name):
+    """Create and place result widgets in the result frame."""
+    tk.Label(result_frame, text=f"Abbr: {abbr}, Decoded: {decoded}, Sheet: {sheet_name}").grid(row=2 * index, column=0, sticky="w")
+
+    copy_button = tk.Button(result_frame, text="Copy")
+    copy_button.grid(row=2 * index, column=1, padx=5)
+    copy_button.config(command=lambda d=decoded, b=copy_button: copy_to_clipboard(result_frame, f"({d})", b))
+
+    separator = ttk.Separator(result_frame, orient="horizontal")
+    separator.grid(row=2 * index + 1, column=0, columnspan=2, pady=(5, 10), sticky="ew")
 
 def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry):
     try:
@@ -101,7 +105,7 @@ def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry):
         height_value = height_entry.get().strip()
         uom_value = uom_var.get()
 
-        if len(nof_value) < 1 or len(nof_value) > 4:
+        if not (1 <= len(nof_value) <= 4):
             raise ValueError("NOF must be between 1 and 4 characters long")
 
         result = df[df.iloc[:, 0].str.upper() == nof_value]
@@ -111,24 +115,33 @@ def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry):
             result_entry.insert(0, "No match found")
             return
 
-        if not height_value:
-            selected_value = result.iloc[0, 5]  # Upper table FL
-        else:
-            if uom_value == "M":
-                height_value = round(int(height_value) * 3.28084 + 49)  # Convert input height im meters to feet
-                selected_value = result.iloc[0, 5] * 100 # Upper table FL converted to hundreds of feet
-                selected_value = round((selected_value + height_value) / 100) # Convert to hundreds of feet
-            elif uom_value == "FT":
-                selected_value = result.iloc[0, 5] * 100 # Upper table FL converted to hundreds of feet
-                height_value = int(height_value)
-                height_value = height_value + 49
-                selected_value = round(selected_value / 100)  # Convert to FL
-
+        selected_value = calculate_flight_level_value(result, height_value, uom_value)
         result_entry.delete(0, tk.END)
         result_entry.insert(0, f"{selected_value:.0f}")
 
     except Exception as e:
-        messagebox.showerror("Error", str(e))
+        messagebox.showerror("Error", f"An error occurred during calculation: {e}")
+
+def calculate_flight_level_value(result, height_value, uom_value):
+    """Calculate the flight level based on height and unit of measure."""
+    if not height_value:
+        return result.iloc[0, 5]
+    
+    if uom_value == "M":
+        height_value = round(int(height_value) * 3.28084 + 49)
+        selected_value = result.iloc[0, 5] * 100
+        return round((selected_value + height_value) / 100)
+    elif uom_value == "FT":
+        selected_value = result.iloc[0, 5] * 100
+        height_value = int(height_value) + 49
+        return round(selected_value / 100)
+
+def create_entry_with_label(parent, label_text, entry_width, row, column):
+    """Helper function to create a label and entry widget."""
+    tk.Label(parent, text=label_text).grid(row=row, column=column)
+    entry = tk.Entry(parent, width=entry_width)
+    entry.grid(row=row, column=column + 1, padx=5)
+    return entry
 
 def show_abbreviation_tool(root, main_frame):
     # Clear the main frame
@@ -141,13 +154,8 @@ def show_abbreviation_tool(root, main_frame):
     input_frame = tk.Frame(frame)
     input_frame.grid(row=0, column=0, padx=10, pady=10)
 
-    tk.Label(input_frame, text="Abbr.").grid(row=0, column=0)
-    abbr_entry = tk.Entry(input_frame, width=20)
-    abbr_entry.grid(row=0, column=1, padx=5)
-
-    tk.Label(input_frame, text="Decoded").grid(row=1, column=0)
-    decoded_entry = tk.Entry(input_frame, width=20)
-    decoded_entry.grid(row=1, column=1, padx=5)
+    abbr_entry = create_entry_with_label(input_frame, "Abbr.", 20, 0, 0)
+    decoded_entry = create_entry_with_label(input_frame, "Decoded", 20, 1, 0)
 
     search_button = tk.Button(input_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), result_frame))
     search_button.grid(row=2, column=0, columnspan=2, pady=5)
@@ -155,24 +163,16 @@ def show_abbreviation_tool(root, main_frame):
     result_frame = tk.Frame(frame)
     result_frame.grid(row=1, column=0, padx=10, pady=10)
 
-    # Flight Level Calculator
     fl_frame = tk.Frame(frame)
     fl_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
-    tk.Label(fl_frame, text="NOF").grid(row=0, column=0)
-    nof_entry = tk.Entry(fl_frame, width=10)
-    nof_entry.grid(row=0, column=1, padx=5)
+    nof_entry = create_entry_with_label(fl_frame, "NOF", 10, 0, 0)
+    height_entry = create_entry_with_label(fl_frame, "Height", 10, 1, 0)
 
     tk.Label(fl_frame, text="UOM").grid(row=0, column=2)
     uom_var = tk.StringVar(value="M")
-    uom_m = tk.Radiobutton(fl_frame, text="M", variable=uom_var, value="M")
-    uom_m.grid(row=0, column=3, padx=5)
-    uom_ft = tk.Radiobutton(fl_frame, text="FT", variable=uom_var, value="FT")
-    uom_ft.grid(row=0, column=4, padx=5)
-
-    tk.Label(fl_frame, text="Height").grid(row=1, column=0)
-    height_entry = tk.Entry(fl_frame, width=10)
-    height_entry.grid(row=1, column=1, padx=5)
+    tk.Radiobutton(fl_frame, text="M", variable=uom_var, value="M").grid(row=0, column=3, padx=5)
+    tk.Radiobutton(fl_frame, text="FT", variable=uom_var, value="FT").grid(row=0, column=4, padx=5)
 
     calculate_button = tk.Button(fl_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, result_entry))
     calculate_button.grid(row=1, column=2, columnspan=3, pady=5)
