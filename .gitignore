@@ -1,9 +1,9 @@
 *.xlsx
 *.json
-*/templates
-__pycache__
+*/templates/
+__pycache__/
 *.zip
 *-bak
-*/build
-*/dist
-*/shapes
+*/build/
+*/dist/
+shapes/
