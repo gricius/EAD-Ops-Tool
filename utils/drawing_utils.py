@@ -4,21 +4,36 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 from cartopy.io.shapereader import Reader
 from cartopy.feature import ShapelyFeature
-from cartopy.io.shapereader import natural_earth
-import sys
-import os
 from shapely.geometry import Point
 from cartopy.crs import Mercator, PlateCarree
+import sys
+import os
 from utils.coordinate_utils import parse_coordinate
 
 def get_resource_path(relative_path):
     """ Get the absolute path to the resource, works for PyInstaller """
     try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+def decimal_degrees_to_dms(deg, is_lat=True):
+    """Convert decimal degrees to degrees, minutes, seconds format."""
+    d = int(deg)
+    m = int((deg - d) * 60)
+    s = (deg - d - m / 60) * 3600
+    direction = 'N' if is_lat and deg >= 0 else 'S' if is_lat else 'E' if deg >= 0 else 'W'
+    return f"{abs(d):02d}°{abs(m):02d}'{abs(s):04.1f}\" {direction}"
+
+def format_coord(x, y):
+    """Format the coordinates for display on the toolbar with latitude first."""
+    if x is None or y is None:
+        return ""
+    lat_dms = decimal_degrees_to_dms(y, is_lat=True)
+    lon_dms = decimal_degrees_to_dms(x, is_lat=False)
+    return f"Lat: {lat_dms}, Lon: {lon_dms}"
+
 
 def draw_coordinates(coords, canvas):
     """
@@ -98,7 +113,6 @@ def plot_coordinates(original_coords, sorted_coords):
     ax.add_feature(disputed_boundaries_shp, zorder=1)
     ax.add_feature(elevations_shp, zorder=1)
 
-
     # Plot country names
     for record in Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).records():
         country_name = record.attributes['NAME']
@@ -151,6 +165,8 @@ def plot_coordinates(original_coords, sorted_coords):
 
     plt.legend()
     plt.title('Original and Sorted Coordinates')
+    # Override the built-in coordinate display
+    ax.format_coord = lambda x, y: format_coord(x, y)
     plt.show()
 
 def show_on_map(original_coords, sorted_coords):
