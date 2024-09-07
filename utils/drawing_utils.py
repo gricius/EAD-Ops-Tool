@@ -120,6 +120,46 @@ def plot_coordinates(original_coords, sorted_coords):
     ax.add_feature(disputed_boundaries_shp, zorder=1)
     ax.add_feature(elevations_shp, zorder=1)
 
+    # Plot country names
+    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).records():
+        country_name = record.attributes['NAME']
+        country_geometry = record.geometry
+        ax.text(country_geometry.centroid.x, country_geometry.centroid.y, country_name,
+                fontsize=8, color='black', transform=ccrs.PlateCarree())
+
+    # Plot airports within the map extent, transforming from Mercator to PlateCarree
+    airports_reader = Reader(get_resource_path('shapes/world_airports.shp'))
+    mercator_proj = Mercator()  # Mercator projection for the airports
+    platecarree_proj = PlateCarree()  # Target projection for plotting
+    
+    for record in airports_reader.records():
+        airport_geometry = record.geometry
+        if isinstance(airport_geometry, Point):
+            # Transform airport coordinates from Mercator to PlateCarree
+            lon, lat = platecarree_proj.transform_point(airport_geometry.x, airport_geometry.y, mercator_proj)
+            if map_extent[0] <= lon <= map_extent[1] and map_extent[2] <= lat <= map_extent[3]:
+                airport_ident = record.attributes['ident']
+                airport_name = record.attributes['name']
+                airport_ident_name = f"{airport_ident} - {airport_name}"
+                ax.text(lon - 0.05, lat, '✈', fontsize=8, color='red', transform=ccrs.PlateCarree())
+                ax.text(lon, lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
+
+    # Plot elevations
+    for record in Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).records():
+        elevation_name = record.attributes['name']
+        elevation_geometry = record.geometry
+        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y, elevation_name,
+                fontsize=8, color='black', transform=ccrs.PlateCarree())
+        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y + 0.3, f"{record.attributes['elevation']} M",
+                fontsize=9, color='black', transform=ccrs.PlateCarree())
+
+    # Plot disputed territories names
+    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).records():
+        disputed_name = record.attributes['BRK_NAME']
+        disputed_geometry = record.geometry
+        ax.text(disputed_geometry.centroid.x, disputed_geometry.centroid.y, disputed_name,
+                fontsize=8, color='black', transform=ccrs.PlateCarree())
+
     # Plot original coordinates
     ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic(), label='Original Coordinates')
     for i, txt in enumerate(range(1, len(original_lons) + 1)):
