@@ -1,3 +1,4 @@
+# views/templates_view.py
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import os

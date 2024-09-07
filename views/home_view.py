@@ -1,3 +1,4 @@
+# views/home_view.py
 import tkinter as tk
 
 def show_home(root, main_frame):

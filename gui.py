@@ -1,3 +1,4 @@
+# gui.py is the main file that creates the main window and the menu bar. It also imports the views and calls the functions to display the views in the main window.
 import tkinter as tk
 from views.home_view import show_home
 from views.ino_tool_view import show_ino_tool

@@ -1,3 +1,4 @@
+# utils/coordinate_utils.py
 import re
 from tkinter import messagebox
 

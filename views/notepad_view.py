@@ -1,3 +1,4 @@
+# views/notepad_view.py
 import tkinter as tk
 from utils.clipboard_utils import paste_from_clipboard
 from utils.misc_utils import find_and_replace

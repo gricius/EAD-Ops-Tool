@@ -1,3 +1,4 @@
+# utils/misc_utils.py   
 def find_and_replace(text_widget, find_text, replace_text):
     content = text_widget.get("1.0", "end")
     new_content = content.replace(find_text, replace_text)

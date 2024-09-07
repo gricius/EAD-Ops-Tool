@@ -1,3 +1,4 @@
+# utils/clipboard_utils.py
 import tkinter as tk
 from tkinter import messagebox
 from .coordinate_utils import extract_coordinates, sort_coordinates

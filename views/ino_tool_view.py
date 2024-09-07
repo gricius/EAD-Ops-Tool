@@ -1,3 +1,4 @@
+# views/ino_tool_view.py
 import tkinter as tk
 from utils.clipboard_utils import paste_from_clipboard
 from utils.drawing_utils import show_on_map

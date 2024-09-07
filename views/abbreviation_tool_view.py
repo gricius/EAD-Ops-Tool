@@ -1,3 +1,4 @@
+# views/abbreviation_tool_view.py
 import tkinter as tk
 from tkinter import messagebox, filedialog
 import pandas as pd
