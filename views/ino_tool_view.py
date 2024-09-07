@@ -137,7 +137,7 @@ def show_ino_tool(root, main_frame):
     main_frame.grid_rowconfigure(0, weight=1)
     main_frame.grid_columnconfigure(0, weight=1)
 
-# Example usage with a Tkinter window
+
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("INO Tool")

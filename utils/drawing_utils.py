@@ -6,9 +6,13 @@ from cartopy.io.shapereader import Reader
 from cartopy.feature import ShapelyFeature
 from shapely.geometry import Point
 from cartopy.crs import Mercator, PlateCarree
+from matplotlib.patches import Circle
+from scipy.spatial import ConvexHull
+import numpy as np
 import sys
 import os
 from utils.coordinate_utils import parse_coordinate
+
 
 def get_resource_path(relative_path):
     """ Get the absolute path to the resource, works for PyInstaller """
@@ -18,6 +22,7 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+
 def decimal_degrees_to_dms(deg, is_lat=True):
     """Convert decimal degrees to degrees, minutes, seconds format."""
     d = int(deg)
@@ -25,6 +30,7 @@ def decimal_degrees_to_dms(deg, is_lat=True):
     s = (deg - d - m / 60) * 3600
     direction = 'N' if is_lat and deg >= 0 else 'S' if is_lat else 'E' if deg >= 0 else 'W'
     return f"{abs(d):02d}°{abs(m):02d}'{abs(s):04.1f}\" {direction}"
+
 
 def format_coord(x, y):
     """Format the coordinates for display on the toolbar with latitude first."""
@@ -75,6 +81,7 @@ def draw_coordinates(coords, canvas):
     except Exception as e:
         messagebox.showwarning('Warning', f'Coordinate drawing error: {e}')
 
+
 def plot_coordinates(original_coords, sorted_coords):
     """
     Plots original and sorted coordinates on a map using Cartopy and matplotlib.
@@ -113,46 +120,6 @@ def plot_coordinates(original_coords, sorted_coords):
     ax.add_feature(disputed_boundaries_shp, zorder=1)
     ax.add_feature(elevations_shp, zorder=1)
 
-    # Plot country names
-    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).records():
-        country_name = record.attributes['NAME']
-        country_geometry = record.geometry
-        ax.text(country_geometry.centroid.x, country_geometry.centroid.y, country_name,
-                fontsize=8, color='black', transform=ccrs.PlateCarree())
-
-    # Plot airports within the map extent, transforming from Mercator to PlateCarree
-    airports_reader = Reader(get_resource_path('shapes/world_airports.shp'))
-    mercator_proj = Mercator()  # Mercator projection for the airports
-    platecarree_proj = PlateCarree()  # Target projection for plotting
-    
-    for record in airports_reader.records():
-        airport_geometry = record.geometry
-        if isinstance(airport_geometry, Point):
-            # Transform airport coordinates from Mercator to PlateCarree
-            lon, lat = platecarree_proj.transform_point(airport_geometry.x, airport_geometry.y, mercator_proj)
-            if map_extent[0] <= lon <= map_extent[1] and map_extent[2] <= lat <= map_extent[3]:
-                airport_ident = record.attributes['ident']
-                airport_name = record.attributes['name']
-                airport_ident_name = f"{airport_ident} - {airport_name}"
-                ax.text(lon - 0.05, lat, '✈', fontsize=8, color='red', transform=ccrs.PlateCarree())
-                ax.text(lon, lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
-
-    # Plot elevations
-    for record in Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).records():
-        elevation_name = record.attributes['name']
-        elevation_geometry = record.geometry
-        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y, elevation_name,
-                fontsize=8, color='black', transform=ccrs.PlateCarree())
-        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y + 0.3, f"{record.attributes['elevation']} M",
-                fontsize=9, color='black', transform=ccrs.PlateCarree())
-
-    # Plot disputed territories names
-    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).records():
-        disputed_name = record.attributes['BRK_NAME']
-        disputed_geometry = record.geometry
-        ax.text(disputed_geometry.centroid.x, disputed_geometry.centroid.y, disputed_name,
-                fontsize=8, color='black', transform=ccrs.PlateCarree())
-
     # Plot original coordinates
     ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic(), label='Original Coordinates')
     for i, txt in enumerate(range(1, len(original_lons) + 1)):
@@ -163,11 +130,33 @@ def plot_coordinates(original_coords, sorted_coords):
     for i, txt in enumerate(range(1, len(sorted_lons) + 1)):
         ax.text(sorted_lons[i], sorted_lats[i], txt, fontsize=12, color='red', transform=ccrs.Geodetic())
 
+    # Calculate and plot the smallest enclosing circle
+    sorted_points = np.array(list(zip(sorted_lons, sorted_lats)))
+    hull = ConvexHull(sorted_points)
+    hull_points = sorted_points[hull.vertices]
+    center = np.mean(hull_points, axis=0)
+
+    # Calculate the actual smallest radius that encloses all points in the hull
+    max_distance = np.max(np.sqrt((hull_points[:, 0] - center[0])**2 + (hull_points[:, 1] - center[1])**2))
+
+    # Add the circle and its center
+    circle = Circle((center[0], center[1]), max_distance, color='red', fill=False, linestyle='--', transform=ccrs.PlateCarree())
+    ax.add_patch(circle)
+    ax.plot(center[0], center[1], 'ro', markersize=8, label='Center of Circle')
+
+    # Convert center to DMS format
+    center_lat_dms = decimal_degrees_to_dms(center[1], is_lat=True)
+    center_lon_dms = decimal_degrees_to_dms(center[0], is_lat=False)
+
+    # Display center coordinates in DMS and radius
+    ax.text(center[0], center[1], f"Center: {center_lat_dms}, {center_lon_dms}\nRadius: {max_distance:.2f}°",
+            fontsize=10, color='black', transform=ccrs.PlateCarree(), ha='left')
+
     plt.legend()
     plt.title('Original and Sorted Coordinates')
-    # Override the built-in coordinate display
     ax.format_coord = lambda x, y: format_coord(x, y)
     plt.show()
+
 
 def show_on_map(original_coords, sorted_coords):
     """

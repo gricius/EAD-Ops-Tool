@@ -6,19 +6,40 @@ def extract_coordinates(text):
     Extracts coordinates from the given text using predefined regex patterns.
     """
     patterns = [
-        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{1})([NS])(\d{3})(\d{2})(\d{2}\.\d{1})([EW])'),
-        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{2})([NS])(\d{3})(\d{2})(\d{2}\.\d{2})([EW])'),
-        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{3})([NS])(\d{3})(\d{2})(\d{2}\.\d{3})([EW])'),
-        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{4})([NS])(\d{3})(\d{2})(\d{2}\.\d{4})([EW])'),
-        re.compile(r'(\d{2})(\d{2})(\d{2}\d{2})([NS])(\d{3})(\d{2})(\d{2}\d{2})([EW])'),
-        re.compile(r'(\d{2})(\d{2})(\d{2})([NS])(\d{3})(\d{2})(\d{2})([EW])'),
-        re.compile(r'(\d{2})(\d{2})([NS])(\d{3})(\d{2})([EW])'),
-        re.compile(r'([NS])(\d{2})(\d{2})(\d{2})([EW])(\d{3})(\d{2})(\d{2})'),
-        re.compile(r'([NS])(\d{2})(\d{2})(\d{2}\.\d{2})([EW])(\d{3})(\d{2})(\d{2}\.\d{2})')
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{1})([NS])(\d{3})(\d{2})(\d{2}\.\d{1})([EW])'), # 123456.7N123456.7E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{2})([NS])(\d{3})(\d{2})(\d{2}\.\d{2})([EW])'), # 123456.78N123456.78E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{3})([NS])(\d{3})(\d{2})(\d{2}\.\d{3})([EW])'), # 123456.789N123456.789E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{4})([NS])(\d{3})(\d{2})(\d{2}\.\d{4})([EW])'), # 123456.7890N123456.7890E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\d{2})([NS])(\d{3})(\d{2})(\d{2}\d{2})([EW])'), # 12345600N12345600E
+        re.compile(r'(\d{2})(\d{2})(\d{2})([NS])(\d{3})(\d{2})(\d{2})([EW])'), # 123456N123456E
+        re.compile(r'(\d{2})(\d{2})([NS])(\d{3})(\d{2})([EW])'), # 1234N12345E
+        re.compile(r'([NS])(\d{2})(\d{2})(\d{2})([EW])(\d{3})(\d{2})(\d{2})'), # N123456E123456
+        re.compile(r'([NS])(\d{2})(\d{2})(\d{2}\.\d{2})([EW])(\d{3})(\d{2})(\d{2}\.\d{2})') # N123456.78E123456.78
     ]
+    # TODO: Add more patterns to match different coordinate formats
+    # invalid_patterns = [
+    #     re.compile(r'(\d{5}({NS})(\d{7}({EW}))'), # 12345N1234567E
+    #     re.compile(r'(\d{6}({NS})(\d{6}({EW}))'), # 123456N123456E
+    #     re.compile(r'(\d{5}({NS})(\d{6}({EW}))'), # 12345N123456E
+    #     re.compile(r'(\d{4}({NS})(\d{6}({EW}))'), # 1234N123456E
+    #     re.compile(r'(\d{4}({NS})(\d{4}({EW}))'), # 1234N1234E
+    #     re.compile(r'(\d{1}\.\d{5}({NS})(\d{1}\.\d{5}({EW}))'), # 1.23456N1.23456E
+    #     re.compile(r'(\d{1}\.\d{4}({NS})(\d{1}\.\d{4}({EW}))'), # 1.2345N1.2345E
+    #     re.compile(r'(\d{1}\.\d{6}(\d{1}\.\d{5})'), # 1.234561.23456
+    #     re.compile(r'(\d{1}\.\d{5}(\d{1}\.\d{4})'), # 1.23451.2345
+    # ]
+
+    # # to be trimmed patterns
+    # coord_to_be_trimmed = [
+    #    re.compile(r'\d{7,10}[NS]\d{8,11}[EW]'), # from 7 to 10 digits N/S and 8 to 11 digits E/W
+    #    re.compile(r'\d{5}[NS]\d{7}[EW]'), # 5 digits N/S and 7 digits E/W
+    #    re.compile(r'\d{5}[NS]\d{6}[EW]'), # 5 digits N/S and 6 digits E/W
+    #    re.compile(r'\d{4}[NS]\d{6}[EW]'), # 4 digits N/S and 6 digits E/W
+    # ]
+
     
     # Clean the input text
-    cleaned_text = text.replace('\n', '').replace('\r', '').replace(' ', '').replace('/', '').replace(',', '.').replace("'", "").replace('DEG', '').replace('-', '')
+    cleaned_text = text.replace('\n', '').replace('\r', '').replace(' ', '').replace('/', '').replace(',', '').replace("'", "").replace('DEG', '').replace('-', '')
     coords = []
     invalid_coords = []
 
