@@ -151,7 +151,7 @@ def plot_coordinates(original_coords, sorted_coords):
               load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
               load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
               load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
-              raster_path='shapes/HYP_50M_SR_W.tif')
+              raster_path='shapes/NE1_50M_SR_W.tif')
 
 
     # Plot original coordinates
@@ -204,7 +204,7 @@ def show_single_coord_on_map(coord):
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
                   load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
                   load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
-                  raster_path='shapes/HYP_50M_SR_W.tif')
+                  raster_path='shapes/NE1_50M_SR_W.tif')
 
     ax.plot(lon, lat, marker='o', color='blue', markersize=8, transform=ccrs.PlateCarree(), label=f'{coord}')
     ax.text(lon, lat, f'{coord}', fontsize=10, color='blue', transform=ccrs.PlateCarree(), ha='left')
@@ -229,35 +229,47 @@ def show_on_map(original_coords, sorted_coords):
 
 def draw_coordinates(coords, canvas):
     canvas.delete("all")
+    
     if not coords:
         return
-    try:
-        parsed_coords = [parse_coordinate(coord) for coord in coords]
-        parsed_coords = [coord for coord in parsed_coords if coord != (None, None)]
-        lats, lons = zip(*parsed_coords)
-        max_lat = max(lats)
-        min_lat = min(lats)
-        max_lon = max(lons)
-        min_lon = min(lons)
 
-        def transform(lat, lon):
-            x = (lon - min_lon) / (max_lon - min_lon) * canvas.winfo_width()
-            y = (max_lat - lat) / (max_lat - min_lat) * canvas.winfo_height()
-            return x, y
+    # Parse the coordinates and filter out invalid ones
+    parsed_coords = [parse_coordinate(coord) for coord in coords]
+    parsed_coords = [coord for coord in parsed_coords if coord != (None, None)]
+    
+    # Check if we have valid coordinates to plot
+    if not parsed_coords:
+        # print("No valid coordinates to draw.")
+        return
+    
+    # Unpack latitudes and longitudes
+    lats, lons = zip(*parsed_coords)
+    max_lat = max(lats)
+    min_lat = min(lats)
+    max_lon = max(lons)
+    min_lon = min(lons)
 
-        for i, (lat, lon) in enumerate(zip(lats, lons)):
-            x, y = transform(lat, lon)
-            canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="blue")
-            canvas.create_text(x, y, text=str(i + 1), anchor=tk.NW)
+    def transform(lat, lon):
+        lon_diff = max_lon - min_lon if max_lon != min_lon else 1e-5
+        lat_diff = max_lat - min_lat if max_lat != min_lat else 1e-5
 
-        for i in range(len(lats) - 1):
-            x1, y1 = transform(lats[i], lons[i])
-            x2, y2 = transform(lats[i + 1], lons[i + 1])
-            canvas.create_line(x1, y1, x2, y2, fill="blue")
+        x = (lon - min_lon) / lon_diff * canvas.winfo_width()
+        y = (max_lat - lat) / lat_diff * canvas.winfo_height()
 
-        x1, y1 = transform(lats[-1], lons[-1])
-        x2, y2 = transform(lats[0], lons[0])
+        return x, y
+
+    # Plot points and lines on the canvas
+    for i, (lat, lon) in enumerate(zip(lats, lons)):
+        x, y = transform(lat, lon)
+        canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="blue")
+        canvas.create_text(x, y, text=str(i + 1), anchor=tk.NW)
+
+    for i in range(len(lats) - 1):
+        x1, y1 = transform(lats[i], lons[i])
+        x2, y2 = transform(lats[i + 1], lons[i + 1])
         canvas.create_line(x1, y1, x2, y2, fill="blue")
 
-    except Exception as e:
-        messagebox.showwarning('Warning', f'Coordinate drawing error: {e}')
+    # Close the polygon by connecting the last point to the first
+    x1, y1 = transform(lats[-1], lons[-1])
+    x2, y2 = transform(lats[0], lons[0])
+    canvas.create_line(x1, y1, x2, y2, fill="blue")

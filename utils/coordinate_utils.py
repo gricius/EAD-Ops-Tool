@@ -170,3 +170,30 @@ def convex_hull(points):
         upper.append(p)
 
     return lower[:-1] + upper[:-1]
+
+def trim_coordinates(coords):
+    trimmed_coords = []
+    for coord in coords:
+        # Check if the coordinate is in the expected compact format (e.g., 574706N0614453E)
+        if len(coord) == 15 and (coord[-1] in ['N', 'S'] or coord[-1] in ['E', 'W']):
+            # Latitude: First 7 characters (DDMMSS[N/S])
+            degrees_lat = coord[:2]
+            minutes_lat = coord[2:4]
+            lat_direction = coord[6]
+
+            # Longitude: Next 8 characters (DDDMMSS[E/W])
+            degrees_lon = coord[7:10]
+            minutes_lon = coord[10:12]
+            lon_direction = coord[-1]
+
+            # Format to DDMM[N/S] DDDMM[E/W], omitting seconds
+            lat_str = f"{degrees_lat}{minutes_lat}{lat_direction}"
+            lon_str = f"{degrees_lon}{minutes_lon}{lon_direction}"
+
+            trimmed_coords.append(f"{lat_str}{lon_str}")
+        else:
+            print(f"Invalid coordinate format: {coord}")
+            continue
+
+    return trimmed_coords
+

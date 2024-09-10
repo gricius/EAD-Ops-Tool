@@ -1,7 +1,7 @@
 # utils/clipboard_utils.py
 import tkinter as tk
 from tkinter import messagebox
-from .coordinate_utils import extract_coordinates, sort_coordinates
+from .coordinate_utils import extract_coordinates, sort_coordinates, trim_coordinates
 from .drawing_utils import draw_coordinates
 
 def show_copied_modal(root, parent_frame):
@@ -36,7 +36,12 @@ def paste_from_clipboard(root, source_text, original_text=None, sorted_text=None
             original_text.insert(tk.END, "No valid format coordinates found. Supported formats are: DD MM[NS] DDD MM [EW], DD MM SS[NS] DDD MM SS[EW], DD MM SS.d2(4)[NS] DDD MM SS.d2[4][EW]")
     
     if sorted_text is not None:
-        sorted_coords = sort_coordinates(coords)
+        if coords and len(coords) > 1:
+            sorted_coords = sort_coordinates(coords)
+        else:
+            # A single coordinate shall be displayed trimmed to format DDMM[NS] DDDMM[EW]
+            sorted_coords = trim_coordinates(coords)
+
         sorted_text.delete("1.0", tk.END)
         sorted_text.insert(tk.END, "\n".join(sorted_coords))
         
