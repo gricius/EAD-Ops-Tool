@@ -20,6 +20,9 @@ from geopy.distance import geodesic  # Geodesic distance for accurate filtering
 from shapely.geometry import box
 from cartopy.geodesic import Geodesic
 import warnings
+import rasterio
+from rasterio.plot import show
+from cartopy.io.img_tiles import Stamen
 
 # Ensure we're using a font that can handle most glyphs
 matplotlib.rcParams['font.family'] = 'Arial'
@@ -74,23 +77,43 @@ def plot_geodesic_circle(ax, lon, lat, radius_nm, color, label):
     ax.plot(circle[:, 0], circle[:, 1], color=color, linestyle='--', transform=ccrs.Geodetic(), label=label)
     warnings.filterwarnings("ignore", message="Legend does not support handles for PatchCollection instances.")
 
-def plot_base_map(ax, countries_gdf, disputed_areas_gdf, disputed_boundaries_gdf, elevation_points_gdf):
-    countries_gdf.plot(ax=ax, edgecolor='black', facecolor='tan', transform=ccrs.PlateCarree())
+def plot_base_map(ax, countries_gdf, disputed_areas_gdf, disputed_boundaries_gdf, elevation_points_gdf, raster_path=None):
+    """
+    Plot base map including countries, disputed areas, and an optional raster background.
+    
+    Parameters:
+    - ax: The matplotlib axis on which to plot.
+    - countries_gdf: Geopandas GeoDataFrame for countries.
+    - disputed_areas_gdf: Geopandas GeoDataFrame for disputed areas.
+    - disputed_boundaries_gdf: Geopandas GeoDataFrame for disputed boundaries.
+    - elevation_points_gdf: Geopandas GeoDataFrame for elevation points.
+    - raster_path: Optional path to a GeoTIFF raster file to plot as a background.
+    """
+    
+    # If a raster_path is provided, load and plot the raster using rasterio
+    if raster_path:
+        with rasterio.open(raster_path) as src:
+            extent = [src.bounds.left, src.bounds.right, src.bounds.bottom, src.bounds.top]
+            ax.imshow(src.read(1), extent=extent, transform=ccrs.PlateCarree(), origin='upper', alpha=0.6)
+    
+    # Plot vector layers
+    countries_gdf.plot(ax=ax, edgecolor='black', facecolor='none', transform=ccrs.PlateCarree())
     for _, country in countries_gdf.iterrows():
         centroid = country.geometry.centroid
         ax.text(centroid.x, centroid.y, country['NAME'], fontsize=10, color='black', transform=ccrs.PlateCarree())
+
     disputed_areas_gdf.plot(ax=ax, edgecolor='red', facecolor='none', linestyle='--', transform=ccrs.PlateCarree(), label="Disputed Areas")
-    # Plot disputed areas BRK_NAME  (breakaway regions) and BRK_DISPUT (disputed regions)
     disputed_boundaries_gdf.plot(ax=ax, edgecolor='red', linestyle='--', transform=ccrs.PlateCarree(), label="Disputed Boundaries")
+
+    # Plot elevation points
     for _, elevation_point in elevation_points_gdf.iterrows():
         point_lon, point_lat = elevation_point.geometry.x, elevation_point.geometry.y
         name = elevation_point['name']
         elevation = elevation_point['elevation']
         elevation_text = f"{name} ({elevation} m)"
         ax.text(point_lon, point_lat, elevation_text, fontsize=8, color='green', transform=ccrs.PlateCarree())
-    
-    warnings.filterwarnings("ignore", message="Glyph .* missing from font")
 
+    warnings.filterwarnings("ignore", message="Glyph .* missing from font")
 
 def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_distance_nm):
     # Reproject airports to WGS84 (EPSG:4326) if needed
@@ -124,10 +147,12 @@ def plot_coordinates(original_coords, sorted_coords):
 
     # Plot base map layers
     plot_base_map(ax, 
-                  load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
-                  load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
-                  load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
-                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'))
+              load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
+              load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
+              load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
+              load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
+              raster_path='shapes/HYP_50M_SR_W.tif')
+
 
     # Plot original coordinates
     ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic(), label='Original Coordinates')
@@ -178,7 +203,8 @@ def show_single_coord_on_map(coord):
                   load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
                   load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
-                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'))
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
+                  raster_path='shapes/HYP_50M_SR_W.tif')
 
     ax.plot(lon, lat, marker='o', color='blue', markersize=8, transform=ccrs.PlateCarree(), label=f'{coord}')
     ax.text(lon, lat, f'{coord}', fontsize=10, color='blue', transform=ccrs.PlateCarree(), ha='left')
