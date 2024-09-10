@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('shapes/*.shp', 'shapes'), ('shapes/*.dbf', 'shapes'), ('shapes/*.shx', 'shapes')],
+    datas=[('shapes/*.shp', 'shapes'), ('shapes/*.dbf', 'shapes'), ('shapes/*.shx', 'shapes'), ('icons/*.png', 'icons')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,4 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='assets\images\plane_purple_12in sh.ico'
 )

@@ -1,11 +1,14 @@
 # utils/drawing_utils.py
 import tkinter as tk
 from tkinter import messagebox
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import matplotlib
 import matplotlib.pyplot as plt
+import geopandas as gpd
 import cartopy.crs as ccrs
 from cartopy.io.shapereader import Reader
 from cartopy.feature import ShapelyFeature
-from shapely.geometry import Point
+from shapely.geometry import Point, box
 from cartopy.crs import Mercator, PlateCarree
 from matplotlib.patches import Circle
 from scipy.spatial import ConvexHull
@@ -13,43 +16,195 @@ import numpy as np
 import sys
 import os
 from utils.coordinate_utils import parse_coordinate
+from geopy.distance import geodesic  # Geodesic distance for accurate filtering
+from shapely.geometry import box
+from cartopy.geodesic import Geodesic
+import warnings
 
+# Ensure we're using a font that can handle most glyphs
+matplotlib.rcParams['font.family'] = 'Arial'
+
+airplane_img = plt.imread('assets/images/transparent_purple_plane_v1.png')
+
+def plot_airplane_icon(ax, lon, lat, image, zoom=0.05):
+    imagebox = OffsetImage(image, zoom=zoom)
+    ab = AnnotationBbox(imagebox, (lon, lat), frameon=False, transform=ccrs.PlateCarree())
+    ax.add_artist(ab)
 
 def get_resource_path(relative_path):
-    """ Get the absolute path to the resource, works for PyInstaller """
     try:
         base_path = sys._MEIPASS
     except AttributeError:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+def load_shapefile(path, target_crs="EPSG:4326"):
+    """
+    Load and reproject shapefile to WGS84 (EPSG:4326) by default.
+    If the CRS is missing, assume it's in EPSG:4326.
+    """
+    gdf = gpd.read_file(get_resource_path(path))
+    
+    # Check if the shapefile has a CRS
+    if gdf.crs is None:
+        # Set a default CRS if the shapefile has no CRS (assuming EPSG:4326)
+        gdf = gdf.set_crs(target_crs)
+    
+    # Reproject to the target CRS if necessary
+    return gdf.to_crs(target_crs) if gdf.crs != target_crs else gdf
+
 
 def decimal_degrees_to_dms(deg, is_lat=True):
-    """Convert decimal degrees to degrees, minutes, seconds format."""
     d = int(deg)
     m = int((deg - d) * 60)
     s = (deg - d - m / 60) * 3600
     direction = 'N' if is_lat and deg >= 0 else 'S' if is_lat else 'E' if deg >= 0 else 'W'
     return f"{abs(d):02d}°{abs(m):02d}'{abs(s):04.1f}\" {direction}"
 
-
 def format_coord(x, y):
-    """Format the coordinates for display on the toolbar with latitude first."""
     if x is None or y is None:
         return ""
     lat_dms = decimal_degrees_to_dms(y, is_lat=True)
     lon_dms = decimal_degrees_to_dms(x, is_lat=False)
     return f"Lat: {lat_dms}, Lon: {lon_dms}"
 
+def plot_geodesic_circle(ax, lon, lat, radius_nm, color, label):
+    geod = Geodesic()
+    circle = geod.circle(lon=lon, lat=lat, radius=radius_nm * 1852, n_samples=360)  # Convert NM to meters
+    ax.plot(circle[:, 0], circle[:, 1], color=color, linestyle='--', transform=ccrs.Geodetic(), label=label)
+    warnings.filterwarnings("ignore", message="Legend does not support handles for PatchCollection instances.")
+
+def plot_base_map(ax, countries_gdf, disputed_areas_gdf, disputed_boundaries_gdf, elevation_points_gdf):
+    countries_gdf.plot(ax=ax, edgecolor='black', facecolor='tan', transform=ccrs.PlateCarree())
+    for _, country in countries_gdf.iterrows():
+        centroid = country.geometry.centroid
+        ax.text(centroid.x, centroid.y, country['NAME'], fontsize=10, color='black', transform=ccrs.PlateCarree())
+    disputed_areas_gdf.plot(ax=ax, edgecolor='red', facecolor='none', linestyle='--', transform=ccrs.PlateCarree(), label="Disputed Areas")
+    # Plot disputed areas BRK_NAME  (breakaway regions) and BRK_DISPUT (disputed regions)
+    disputed_boundaries_gdf.plot(ax=ax, edgecolor='red', linestyle='--', transform=ccrs.PlateCarree(), label="Disputed Boundaries")
+    for _, elevation_point in elevation_points_gdf.iterrows():
+        point_lon, point_lat = elevation_point.geometry.x, elevation_point.geometry.y
+        name = elevation_point['name']
+        elevation = elevation_point['elevation']
+        elevation_text = f"{name} ({elevation} m)"
+        ax.text(point_lon, point_lat, elevation_text, fontsize=8, color='green', transform=ccrs.PlateCarree())
+    
+    warnings.filterwarnings("ignore", message="Glyph .* missing from font")
+
+
+def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_distance_nm):
+    # Reproject airports to WGS84 (EPSG:4326) if needed
+    airports_gdf = airports_gdf.to_crs("EPSG:4326")
+
+    # Filter airports by bounding box and plot
+    airports_within_bbox = airports_gdf.loc[airports_gdf.sindex.intersection(bounding_box.bounds)]
+    for _, record in airports_within_bbox.iterrows():
+        airport_geometry = record.geometry
+        if isinstance(airport_geometry, Point):
+            airport_lon, airport_lat = airport_geometry.x, airport_geometry.y
+            distance_nm = geodesic((center_lat, center_lon), (airport_lat, airport_lon)).nautical
+            if distance_nm <= max_distance_nm:
+                plot_airplane_icon(ax, airport_lon, airport_lat, airplane_img)
+                airport_ident_name = f"{record['ident']} - {record['name']} ({decimal_degrees_to_dms(airport_lat, True)}, {decimal_degrees_to_dms(airport_lon, False)})"
+                ax.text(airport_lon + 0.05, airport_lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
+
+def plot_coordinates(original_coords, sorted_coords):
+    parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
+    parsed_sorted_coords = [parse_coordinate(coord) for coord in sorted_coords]
+    original_lats, original_lons = zip(*parsed_original_coords)
+    sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
+
+    fig, ax = plt.subplots(figsize=(12, 10), subplot_kw={'projection': ccrs.PlateCarree()})
+    # Remove padding around the plot
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    margin = 2.0
+    min_lon, max_lon = min(original_lons) - margin, max(original_lons) + margin
+    min_lat, max_lat = min(original_lats) - margin, max(original_lats) + margin
+    ax.set_extent([min_lon, max_lon, min_lat, max_lat], crs=ccrs.PlateCarree())
+
+    # Plot base map layers
+    plot_base_map(ax, 
+                  load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
+                  load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
+                  load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'))
+
+    # Plot original coordinates
+    ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic(), label='Original Coordinates')
+    for i, txt in enumerate(range(1, len(original_lons) + 1)):
+        ax.text(original_lons[i], original_lats[i], txt, fontsize=12, color='blue', transform=ccrs.Geodetic())
+
+    # Plot sorted coordinates
+    ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red', transform=ccrs.Geodetic(), label='Sorted Coordinates')
+    for i, txt in enumerate(range(1, len(sorted_lons) + 1)):
+        ax.text(sorted_lons[i], sorted_lats[i], txt, fontsize=12, color='red', transform=ccrs.Geodetic())
+
+    # Calculate geodesic center and max radius
+    center_lat, center_lon = np.mean(sorted_lats), np.mean(sorted_lons)
+    max_distance_nm = max(geodesic((center_lat, center_lon), (lat, lon)).nautical for lat, lon in zip(sorted_lats, sorted_lons))
+    plot_geodesic_circle(ax, center_lon, center_lat, max_distance_nm, 'green', f'{max_distance_nm:.2f} NM Enclosing Circle')
+
+    # Plot airports within bounding box
+    delta_deg = 100 * 1.852 / 110.574  # Approx conversion of NM to degrees
+    bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
+    airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")  # Ensure the airports are loaded correctly
+    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, 100)
+
+    # Display center coordinates and radius
+    ax.text(center_lon, center_lat, f"Center: {decimal_degrees_to_dms(center_lat)}, {decimal_degrees_to_dms(center_lon)}\nRadius: {max_distance_nm:.2f} NM",
+            fontsize=10, color='green', transform=ccrs.PlateCarree(), ha='left')
+    
+
+    # Add title and legend
+    plt.legend()
+    plt.title(f"Original and Sorted Coordinates with Minimum Enclosing Circle ({max_distance_nm:.2f} NM radius) and Airports")
+    ax.format_coord = lambda x, y: format_coord(x, y)
+    plt.show()
+
+def show_single_coord_on_map(coord):
+    lat, lon = parse_coordinate(coord)
+    if lat is None or lon is None:
+        messagebox.showwarning('Warning', 'Invalid coordinate for plotting.')
+        return
+
+    fig, ax = plt.subplots(figsize=(12, 10), subplot_kw={'projection': ccrs.PlateCarree()})
+    # Remove padding around the plot
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+
+    extent_margin = 1.0
+    ax.set_extent([lon - extent_margin, lon + extent_margin, lat - extent_margin, lat + extent_margin], crs=ccrs.PlateCarree())
+
+    plot_base_map(ax, 
+                  load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
+                  load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
+                  load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'))
+
+    ax.plot(lon, lat, marker='o', color='blue', markersize=8, transform=ccrs.PlateCarree(), label=f'{coord}')
+    ax.text(lon, lat, f'{coord}', fontsize=10, color='blue', transform=ccrs.PlateCarree(), ha='left')
+    plot_geodesic_circle(ax, lon, lat, 1, 'blue', '1NM Radius')
+    plot_geodesic_circle(ax, lon, lat, 5, 'red', '5NM Radius')
+
+    delta_deg = 5 * 1.852 / 110.574
+    bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
+    airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
+    plot_airports(ax, bounding_box, airports_gdf, lat, lon, 5)
+
+    plt.title('Single Coordinate with 1 NM and 5 NM Radius Circles')
+    ax.format_coord = lambda x, y: format_coord(x, y)
+    plt.legend()
+    plt.show()
+
+def show_on_map(original_coords, sorted_coords):
+    if len(original_coords) == 1:
+        show_single_coord_on_map(original_coords[0])
+    else:
+        plot_coordinates(original_coords, sorted_coords)
 
 def draw_coordinates(coords, canvas):
-    """
-    Draws the coordinates on the given canvas.
-    """
     canvas.delete("all")
     if not coords:
         return
-
     try:
         parsed_coords = [parse_coordinate(coord) for coord in coords]
         parsed_coords = [coord for coord in parsed_coords if coord != (None, None)]
@@ -74,133 +229,9 @@ def draw_coordinates(coords, canvas):
             x2, y2 = transform(lats[i + 1], lons[i + 1])
             canvas.create_line(x1, y1, x2, y2, fill="blue")
 
-        # Draw the closing line of the polygon
         x1, y1 = transform(lats[-1], lons[-1])
         x2, y2 = transform(lats[0], lons[0])
         canvas.create_line(x1, y1, x2, y2, fill="blue")
 
     except Exception as e:
         messagebox.showwarning('Warning', f'Coordinate drawing error: {e}')
-
-
-def plot_coordinates(original_coords, sorted_coords):
-    """
-    Plots original and sorted coordinates on a map using Cartopy and matplotlib.
-    """
-    parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
-    parsed_sorted_coords = [parse_coordinate(coord) for coord in sorted_coords]
-
-    parsed_original_coords = [coord for coord in parsed_original_coords if coord != (None, None)]
-    parsed_sorted_coords = [coord for coord in parsed_sorted_coords if coord != (None, None)]
-
-    if not parsed_original_coords or not parsed_sorted_coords:
-        messagebox.showwarning('Warning', 'No valid coordinates to plot.')
-        return
-
-    original_lats, original_lons = zip(*parsed_original_coords)
-    sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
-
-    fig, ax = plt.subplots(figsize=(12, 10), subplot_kw={'projection': ccrs.PlateCarree()})
-    
-    # Set the map extent to zoom in on a region
-    map_extent = [min(original_lons) - 3, max(original_lons) + 3, min(original_lats) - 3, max(original_lats) + 3]
-    ax.set_extent(map_extent, crs=ccrs.PlateCarree())
-
-    # Use local shapefiles for features
-    countries_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).geometries(),
-                                   ccrs.PlateCarree(), edgecolor='black', facecolor='tan')
-    disputed_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).geometries(),
-                                  ccrs.PlateCarree(), edgecolor='red', facecolor='none')
-    disputed_boundaries_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp')).geometries(),
-                                             ccrs.PlateCarree(), edgecolor='red', facecolor='none')
-    elevations_shp = ShapelyFeature(Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).geometries(),
-                                    ccrs.PlateCarree(), edgecolor='black', facecolor='none')
-    
-    ax.add_feature(countries_shp, zorder=1)
-    ax.add_feature(disputed_shp, zorder=0)
-    ax.add_feature(disputed_boundaries_shp, zorder=1)
-    ax.add_feature(elevations_shp, zorder=1)
-
-    # Plot country names
-    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_countries.shp')).records():
-        country_name = record.attributes['NAME']
-        country_geometry = record.geometry
-        ax.text(country_geometry.centroid.x, country_geometry.centroid.y, country_name,
-                fontsize=8, color='black', transform=ccrs.PlateCarree())
-
-    # Plot airports within the map extent, transforming from Mercator to PlateCarree
-    airports_reader = Reader(get_resource_path('shapes/world_airports.shp'))
-    mercator_proj = Mercator()  # Mercator projection for the airports
-    platecarree_proj = PlateCarree()  # Target projection for plotting
-    
-    for record in airports_reader.records():
-        airport_geometry = record.geometry
-        if isinstance(airport_geometry, Point):
-            # Transform airport coordinates from Mercator to PlateCarree
-            lon, lat = platecarree_proj.transform_point(airport_geometry.x, airport_geometry.y, mercator_proj)
-            if map_extent[0] <= lon <= map_extent[1] and map_extent[2] <= lat <= map_extent[3]:
-                airport_ident = record.attributes['ident']
-                airport_name = record.attributes['name']
-                airport_ident_name = f"{airport_ident} - {airport_name}"
-                ax.text(lon - 0.05, lat, '✈', fontsize=8, color='red', transform=ccrs.PlateCarree())
-                ax.text(lon, lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
-
-    # Plot elevations
-    for record in Reader(get_resource_path('shapes/ne_50m_geography_regions_elevation_points.shp')).records():
-        elevation_name = record.attributes['name']
-        elevation_geometry = record.geometry
-        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y, elevation_name,
-                fontsize=8, color='black', transform=ccrs.PlateCarree())
-        ax.text(elevation_geometry.centroid.x, elevation_geometry.centroid.y + 0.3, f"{record.attributes['elevation']} M",
-                fontsize=9, color='black', transform=ccrs.PlateCarree())
-
-    # Plot disputed territories names
-    for record in Reader(get_resource_path('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp')).records():
-        disputed_name = record.attributes['BRK_NAME']
-        disputed_geometry = record.geometry
-        ax.text(disputed_geometry.centroid.x, disputed_geometry.centroid.y, disputed_name,
-                fontsize=8, color='black', transform=ccrs.PlateCarree())
-
-    # Plot original coordinates
-    ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic(), label='Original Coordinates')
-    for i, txt in enumerate(range(1, len(original_lons) + 1)):
-        ax.text(original_lons[i], original_lats[i], txt, fontsize=12, color='blue', transform=ccrs.Geodetic())
-
-    # Plot sorted coordinates
-    ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red', transform=ccrs.Geodetic(), label='Sorted Coordinates')
-    for i, txt in enumerate(range(1, len(sorted_lons) + 1)):
-        ax.text(sorted_lons[i], sorted_lats[i], txt, fontsize=12, color='red', transform=ccrs.Geodetic())
-
-    # Calculate and plot the smallest enclosing circle
-    sorted_points = np.array(list(zip(sorted_lons, sorted_lats)))
-    hull = ConvexHull(sorted_points)
-    hull_points = sorted_points[hull.vertices]
-    center = np.mean(hull_points, axis=0)
-
-    # Calculate the actual smallest radius that encloses all points in the hull
-    max_distance = np.max(np.sqrt((hull_points[:, 0] - center[0])**2 + (hull_points[:, 1] - center[1])**2))
-
-    # Add the circle and its center
-    circle = Circle((center[0], center[1]), max_distance, color='red', fill=False, linestyle='--', transform=ccrs.PlateCarree())
-    ax.add_patch(circle)
-    ax.plot(center[0], center[1], 'ro', markersize=8, label='Center of Circle')
-
-    # Convert center to DMS format
-    center_lat_dms = decimal_degrees_to_dms(center[1], is_lat=True)
-    center_lon_dms = decimal_degrees_to_dms(center[0], is_lat=False)
-
-    # Display center coordinates in DMS and radius
-    ax.text(center[0], center[1], f"Center: {center_lat_dms}, {center_lon_dms}\nRadius: {max_distance:.2f}°",
-            fontsize=10, color='black', transform=ccrs.PlateCarree(), ha='left')
-
-    plt.legend()
-    plt.title('Original and Sorted Coordinates')
-    ax.format_coord = lambda x, y: format_coord(x, y)
-    plt.show()
-
-
-def show_on_map(original_coords, sorted_coords):
-    """
-    Show coordinates on the map using matplotlib and Cartopy.
-    """
-    plot_coordinates(original_coords, sorted_coords)
