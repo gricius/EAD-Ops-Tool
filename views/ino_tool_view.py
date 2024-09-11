@@ -3,11 +3,90 @@ import tkinter as tk
 from utils.clipboard_utils import paste_from_clipboard
 from utils.drawing_utils import show_on_map
 from utils.button_utils import copy_to_clipboard
+import re
+from tkinter import messagebox
+
+def format_time_ranges(time_ranges):
+    months = {
+        '01': 'JAN', '02': 'FEB', '03': 'MAR', '04': 'APR', '05': 'MAY', '06': 'JUN',
+        '07': 'JUL', '08': 'AUG', '09': 'SEP', '10': 'OCT', '11': 'NOV', '12': 'DEC'
+    }
+    
+    formatted_output = []
+    previous_date = ""
+    
+    for i, time_range in enumerate(time_ranges):
+        start, end = time_range.split(' TO ')
+        start_date = start[2:6]  # Extract MMDD (MMDD for start date)
+        end_date = end[2:6]  # Extract MMDD (MMDD for end date)
+        
+        # Format start and end times as HHMM
+        start_time = start[6:]
+        end_time = end[6:]
+        
+        # Month and day formatting
+        start_month = months[start[2:4]]
+        start_day = start[4:6]
+        end_month = months[end[2:4]]
+        end_day = end[4:6]
+        
+        if start_date == previous_date:
+            # Same day, just append the time range
+            if start_date == end_date:
+                formatted_output[-1] += f" {start_time}-{end_time}"
+            else:
+                # If the activity ends the next day but the same month, show only the time
+                if start_month == end_month:
+                    formatted_output[-1] += f" {start_time}-{end_time}"
+                else:
+                    formatted_output[-1] += f" {start_time}-{end_month} {end_day} {end_time}"
+        else:
+            # New day, display the month and day
+            if start_date == end_date:
+                if formatted_output:
+                    formatted_output[-1] += ","  # Add a comma before the next date range
+                formatted_output.append(f"{start_month} {start_day} {start_time}-{end_time}")
+            else:
+                # Cross-day logic: if in the same month, show only the time for the end
+                if start_month == end_month:
+                    if formatted_output:
+                        formatted_output[-1] += ","  # Add a comma before the next date range
+                    formatted_output.append(f"{start_month} {start_day} {start_time}-{end_time}")
+                else:
+                    # Cross-month logic: include the end month in the output
+                    if formatted_output:
+                        formatted_output[-1] += ","  # Add a comma before the next date range
+                    formatted_output.append(f"{start_month} {start_day} {start_time}-{end_month} {end_day} {end_time}")
+        
+        # Update the previous date to the current start date
+        previous_date = start_date
+
+    return ' '.join(formatted_output)
+
+
+
+def paste_time_ranges(root, time_text):
+    clipboard_content = root.clipboard_get()
+
+    # Extract time ranges in ICAO format using regex
+    time_ranges = re.findall(r'\d{10} TO \d{10}', clipboard_content)
+    
+    if not time_ranges:
+        messagebox.showwarning("Invalid Input", "No valid time ranges found in the clipboard")
+        return
+
+    # Format the time ranges
+    formatted_times = format_time_ranges(time_ranges)
+    
+    # Clear the text area and insert formatted times
+    time_text.delete("1.0", tk.END)
+    time_text.insert(tk.END, formatted_times)
 
 def show_ino_tool(root, main_frame):
     # Clear the main frame
     for widget in main_frame.winfo_children():
         widget.destroy()
+        
 
     frame = tk.Frame(main_frame)
     frame.pack(fill="both", expand=True)
@@ -17,6 +96,9 @@ def show_ino_tool(root, main_frame):
 
     paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=lambda: paste_from_clipboard(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas, original_frame))
     paste_coord_button.grid(row=0, column=0, padx=5, pady=5)
+
+    paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text))
+    paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
     # clear the text area on click
     source_text = tk.Text(input_frame, height=20, width=30)
