@@ -87,7 +87,6 @@ def show_ino_tool(root, main_frame):
     for widget in main_frame.winfo_children():
         widget.destroy()
         
-
     frame = tk.Frame(main_frame)
     frame.pack(fill="both", expand=True)
 
@@ -168,6 +167,40 @@ def show_ino_tool(root, main_frame):
     nm_entry.bind("<FocusOut>", convert_nm_to_km)
     mt_entry.bind("<FocusOut>", convert_mt_to_ft)
     ft_entry.bind("<FocusOut>", convert_ft_to_mt)
+    
+    # Load templates and get the first three for copying
+    from views.templates_view import load_template_order
+    import os
+    import json
+
+    TEMPLATES_DIR = "templates"
+
+    def get_template_content(template_name):
+        template_path = os.path.join(TEMPLATES_DIR, f"{template_name}.json")
+        if os.path.exists(template_path):
+            with open(template_path, "r") as file:
+                return json.load(file).get("content", "")
+        return ""
+    
+    # Fetch the first three templates
+    template_order = load_template_order()
+    first_three_templates = template_order[:3] if len(template_order) >= 3 else template_order
+
+    # Create copy buttons for the first three templates
+    tpl_label = tk.Label(conversion_frame, text='Copy template:')
+    tpl_label.grid(row=2, column=1, padx=5, pady=5, sticky="e")
+
+    copy_template1_button = tk.Button(conversion_frame, text=" # 1")
+    copy_template1_button.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
+    copy_template1_button.config(command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[0]), copy_template1_button))
+
+    copy_template2_button = tk.Button(conversion_frame, text=" # 2")
+    copy_template2_button.grid(row=3, column=1, padx=5, pady=5 )
+    copy_template2_button.config(command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[1]), copy_template2_button))
+
+    copy_template3_button = tk.Button(conversion_frame, text=" # 3")
+    copy_template3_button.grid(row=3, column=2, padx=5, pady=5, sticky="ew")
+    copy_template3_button.config(command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[2]), copy_template3_button))
 
     # Original frame with "Show on map" button, original text
     original_frame = tk.Frame(frame)
