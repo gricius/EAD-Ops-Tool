@@ -9,7 +9,7 @@ from views.templates_view import show_templates
 
 def create_main_window():
     root = tk.Tk()
-    root.iconbitmap('assets\images\plane_purple_12in sh.ico')
+    # root.iconbitmap('assets\images\plane_purple_12in sh.ico')
     root.title("EAD OPS Tool")
     root.geometry("1000x750")
 

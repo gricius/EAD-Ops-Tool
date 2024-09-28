@@ -4,9 +4,25 @@
 a = Analysis(
     ['main.py'],
     pathex=[],
+    hiddenimports=[
+        'rasterio', 
+        'rasterio._base', 
+        'rasterio._shim', 
+        'rasterio.vrt', 
+        'rasterio.windows', 
+        'rasterio.enums',
+        'rasterio.sample',
+        'rasterio._features',
+        'fiona',
+    ],
     binaries=[],
-    datas=[('shapes/*.shp', 'shapes'), ('shapes/*.dbf', 'shapes'), ('shapes/*.shx', 'shapes'), ('icons/*.png', 'icons')],
-    hiddenimports=[],
+    datas=[
+    ('shapes/*.shp', 'shapes'),
+    ('shapes/*.dbf', 'shapes'),
+    ('shapes/*.shx', 'shapes'),
+    ('shapes/NE1_50M_SR_W.tif', 'shapes'), 
+    ('assets/images/transparent_purple_plane_v1.png', 'assets/images'),
+],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,5 +51,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='assets\images\plane_purple_12in sh.ico'
+    icon='assets\images\plane_purple_12in sh.ico',
 )

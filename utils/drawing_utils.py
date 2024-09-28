@@ -27,19 +27,24 @@ from cartopy.io.img_tiles import Stamen
 # Ensure we're using a font that can handle most glyphs
 matplotlib.rcParams['font.family'] = 'Arial'
 
-airplane_img = plt.imread('assets/images/transparent_purple_plane_v1.png')
+def get_resource_path(relative_path):
+    """ Get the absolute path to resource, works for PyInstaller and development. """
+    try:
+        # If running as a PyInstaller bundle, use the temporary _MEIPASS directory.
+        base_path = sys._MEIPASS
+    except AttributeError:
+        # If running in development, use the normal relative path.
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
+airplane_img = plt.imread(get_resource_path('assets/images/transparent_purple_plane_v1.png'))
+
 
 def plot_airplane_icon(ax, lon, lat, image, zoom=0.05):
     imagebox = OffsetImage(image, zoom=zoom)
     ab = AnnotationBbox(imagebox, (lon, lat), frameon=False, transform=ccrs.PlateCarree())
     ax.add_artist(ab)
-
-def get_resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except AttributeError:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
 
 def load_shapefile(path, target_crs="EPSG:4326"):
     """
@@ -151,7 +156,8 @@ def plot_coordinates(original_coords, sorted_coords):
               load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
               load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
               load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
-              raster_path='shapes/NE1_50M_SR_W.tif')
+              raster_path=get_resource_path('shapes/NE1_50M_SR_W.tif')
+                )
 
 
     # Plot original coordinates
