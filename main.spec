@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 a = Analysis(
-    ['main.py'],
+    ['main.pyw'],
     pathex=[],
     hiddenimports=['pyogrio._geometry'],
     binaries=[],

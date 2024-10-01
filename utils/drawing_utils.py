@@ -255,6 +255,8 @@ def show_on_map(original_coords, sorted_coords):
     else:
         plot_coordinates(original_coords, sorted_coords)
 
+import tkinter.font as tkFont
+
 def draw_coordinates(coords, canvas):
     canvas.delete("all")
     
@@ -267,7 +269,6 @@ def draw_coordinates(coords, canvas):
     
     # Check if we have valid coordinates to plot
     if not parsed_coords:
-        # print("No valid coordinates to draw.")
         return
     
     # Unpack latitudes and longitudes
@@ -286,11 +287,14 @@ def draw_coordinates(coords, canvas):
 
         return x, y
 
+    # Define the font for the text (bold and white)
+    bold_white_font = tkFont.Font(family="Helvetica", size=10, weight="bold")
+
     # Plot points and lines on the canvas
     for i, (lat, lon) in enumerate(zip(lats, lons)):
         x, y = transform(lat, lon)
         canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="blue")
-        canvas.create_text(x, y, text=str(i + 1), anchor=tk.NW)
+        canvas.create_text(x, y, text=str(i + 1), anchor=tk.NW, fill="white", font=bold_white_font)
 
     for i in range(len(lats) - 1):
         x1, y1 = transform(lats[i], lons[i])
@@ -301,3 +305,4 @@ def draw_coordinates(coords, canvas):
     x1, y1 = transform(lats[-1], lons[-1])
     x2, y2 = transform(lats[0], lons[0])
     canvas.create_line(x1, y1, x2, y2, fill="blue")
+
