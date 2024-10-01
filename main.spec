@@ -1,27 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['main.py'],
     pathex=[],
-    hiddenimports=[
-        'rasterio', 
-        'rasterio._base', 
-        'rasterio._shim', 
-        'rasterio.vrt', 
-        'rasterio.windows', 
-        'rasterio.enums',
-        'rasterio.sample',
-        'rasterio._features',
-        'fiona',
-    ],
+    hiddenimports=['pyogrio._geometry'],
     binaries=[],
     datas=[
     ('shapes/*.shp', 'shapes'),
     ('shapes/*.dbf', 'shapes'),
     ('shapes/*.shx', 'shapes'),
-    ('shapes/NE1_50M_SR_W.tif', 'shapes'), 
     ('assets/images/transparent_purple_plane_v1.png', 'assets/images'),
+    ('C:/Users/grici/miniconda3/Library/share/gdal', 'gdal'),
 ],
     hookspath=[],
     hooksconfig={},
@@ -51,5 +40,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='assets\images\plane_purple_12in sh.ico',
-)
+    )

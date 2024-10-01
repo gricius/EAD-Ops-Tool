@@ -11,18 +11,35 @@ from cartopy.feature import ShapelyFeature
 from shapely.geometry import Point, box
 from cartopy.crs import Mercator, PlateCarree
 from matplotlib.patches import Circle
-from scipy.spatial import ConvexHull
 import numpy as np
 import sys
 import os
 from utils.coordinate_utils import parse_coordinate
 from geopy.distance import geodesic  # Geodesic distance for accurate filtering
-from shapely.geometry import box
 from cartopy.geodesic import Geodesic
 import warnings
-import rasterio
-from rasterio.plot import show
-from cartopy.io.img_tiles import Stamen
+import pyogrio
+from osgeo import gdal
+
+def set_gdal_data_path():
+    """Set the GDAL data path based on whether the script is running from PyInstaller or development."""
+    if getattr(sys, 'frozen', False):  # If bundled with PyInstaller
+        base_path = sys._MEIPASS  # PyInstaller's temporary directory
+        gdal_data_path = os.path.join(base_path, 'gdal')
+    else:
+        gdal_data_path = r"C:\Users\grici\miniconda3\Library\share\gdal"  # Normal path during development
+    
+    os.environ['GDAL_DATA'] = gdal_data_path
+
+set_gdal_data_path()  
+
+def check_gdal_data():
+    gdal_data = gdal.GetConfigOption('GDAL_DATA')
+    # print(f"GDAL_DATA from GDAL: {gdal_data}")
+
+# Check if GDAL can detect the data files
+check_gdal_data()
+
 
 # Ensure we're using a font that can handle most glyphs
 matplotlib.rcParams['font.family'] = 'Arial'
@@ -46,20 +63,26 @@ def plot_airplane_icon(ax, lon, lat, image, zoom=0.05):
     ab = AnnotationBbox(imagebox, (lon, lat), frameon=False, transform=ccrs.PlateCarree())
     ax.add_artist(ab)
 
-def load_shapefile(path, target_crs="EPSG:4326"):
+def load_shapefile(relative_path, target_crs="EPSG:4326"):
     """
     Load and reproject shapefile to WGS84 (EPSG:4326) by default.
-    If the CRS is missing, assume it's in EPSG:4326.
+    Handles both PyInstaller's bundled files and development paths.
     """
-    gdf = gpd.read_file(get_resource_path(path))
+    if getattr(sys, 'frozen', False):  # If bundled with PyInstaller
+        base_path = sys._MEIPASS
+        # print(f"Base path in PyInstaller executable: {base_path}")
+        # print(f"GDAL files: {os.listdir(os.path.join(base_path, 'gdal'))}")
+        path = os.path.join(base_path, relative_path)
+    else:
+        path = os.path.abspath(relative_path)  # Normal path during development
+
+    gdf = gpd.read_file(path, engine="pyogrio")
     
-    # Check if the shapefile has a CRS
     if gdf.crs is None:
-        # Set a default CRS if the shapefile has no CRS (assuming EPSG:4326)
         gdf = gdf.set_crs(target_crs)
     
-    # Reproject to the target CRS if necessary
     return gdf.to_crs(target_crs) if gdf.crs != target_crs else gdf
+
 
 
 def decimal_degrees_to_dms(deg, is_lat=True):
@@ -95,14 +118,14 @@ def plot_base_map(ax, countries_gdf, disputed_areas_gdf, disputed_boundaries_gdf
     - raster_path: Optional path to a GeoTIFF raster file to plot as a background.
     """
     
-    # If a raster_path is provided, load and plot the raster using rasterio
-    if raster_path:
-        with rasterio.open(raster_path) as src:
-            extent = [src.bounds.left, src.bounds.right, src.bounds.bottom, src.bounds.top]
-            ax.imshow(src.read(1), extent=extent, transform=ccrs.PlateCarree(), origin='upper', alpha=0.6)
+    # # If a raster_path is provided, load and plot the raster using rasterio
+    # if raster_path:
+    #     with rasterio.open(raster_path) as src:
+    #         extent = [src.bounds.left, src.bounds.right, src.bounds.bottom, src.bounds.top]
+    #         ax.imshow(src.read(1), extent=extent, transform=ccrs.PlateCarree(), origin='upper', alpha=0.6)
     
     # Plot vector layers
-    countries_gdf.plot(ax=ax, edgecolor='black', facecolor='none', transform=ccrs.PlateCarree())
+    countries_gdf.plot(ax=ax, edgecolor='black', facecolor='tan', transform=ccrs.PlateCarree())
     for _, country in countries_gdf.iterrows():
         centroid = country.geometry.centroid
         ax.text(centroid.x, centroid.y, country['NAME'], fontsize=10, color='black', transform=ccrs.PlateCarree())
@@ -142,7 +165,7 @@ def plot_coordinates(original_coords, sorted_coords):
     original_lats, original_lons = zip(*parsed_original_coords)
     sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
 
-    fig, ax = plt.subplots(figsize=(12, 10), subplot_kw={'projection': ccrs.PlateCarree()})
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': ccrs.PlateCarree()})
     # Remove padding around the plot
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     margin = 2.0
@@ -176,10 +199,10 @@ def plot_coordinates(original_coords, sorted_coords):
     plot_geodesic_circle(ax, center_lon, center_lat, max_distance_nm, 'green', f'{max_distance_nm:.2f} NM Enclosing Circle')
 
     # Plot airports within bounding box
-    delta_deg = 100 * 1.852 / 110.574  # Approx conversion of NM to degrees
+    delta_deg = 25 * 1.852 / 110.574  # Approx conversion of NM to degrees
     bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")  # Ensure the airports are loaded correctly
-    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, 100)
+    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, 25)
 
     # Display center coordinates and radius
     ax.text(center_lon, center_lat, f"Center: {decimal_degrees_to_dms(center_lat)}, {decimal_degrees_to_dms(center_lon)}\nRadius: {max_distance_nm:.2f} NM",
@@ -209,8 +232,7 @@ def show_single_coord_on_map(coord):
                   load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
                   load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
-                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
-                  raster_path='shapes/NE1_50M_SR_W.tif')
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),)
 
     ax.plot(lon, lat, marker='o', color='blue', markersize=8, transform=ccrs.PlateCarree(), label=f'{coord}')
     ax.text(lon, lat, f'{coord}', fontsize=10, color='blue', transform=ccrs.PlateCarree(), ha='left')
