@@ -1,7 +1,8 @@
 # views/ino_tool_view.py
 import tkinter as tk
+import tkinter.font as tkFont
 from utils.clipboard_utils import paste_from_clipboard
-from utils.drawing_utils import show_on_map
+from utils.drawing_utils import show_on_map, draw_coordinates
 from utils.button_utils import copy_to_clipboard
 import re
 from tkinter import messagebox, filedialog
@@ -55,6 +56,17 @@ def load_excel_data(file_path):
     except Exception as e:
         messagebox.showerror("Error", f"Failed to load Excel file: {e}")
         return None
+    
+def update_line_numbers(text_widget, line_widget):
+    """ Update line numbers for the text widget. """
+    line_widget.config(state=tk.NORMAL)
+    line_widget.delete("1.0", tk.END)
+
+    lines = text_widget.index(tk.END).split('.')[0]
+    for line in range(1, int(lines)):
+        line_widget.insert(tk.END, f"{line}\n")
+
+    line_widget.config(state=tk.DISABLED)
 
 def search_abbreviation(abbr_text, decoded_text, root):
     """Perform search and display results in a modal pop-up window."""
@@ -82,6 +94,9 @@ def search_abbreviation(abbr_text, decoded_text, root):
         result_popup = tk.Toplevel(root)
         result_popup.title("Search Results")
         result_popup.configure(bg="black")
+
+        # Set a minimum width for the modal window
+        result_popup.geometry("900x300")  # Adjust this size if necessary to fit the results and button
 
         # Create a scrollable frame in the pop-up
         canvas = tk.Canvas(result_popup, bg="black")
@@ -115,7 +130,7 @@ def create_result_widgets(result_frame, index, abbr, decoded, sheet_name, root):
     copy_button.config(command=lambda: copy_to_clipboard(root, f"({decoded})", copy_button))
 
     # Separator
-    tk.Frame(result_frame, height=1, width=300, bg="white").grid(row=2 * index + 1, column=0, columnspan=2, pady=5)
+    tk.Frame(result_frame, height=1, width=800, bg="white").grid(row=2 * index + 1, column=0, columnspan=2, pady=5)
 
 
 # Flight level calculation
@@ -297,7 +312,7 @@ def show_ino_tool(root, main_frame):
     paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
     # Text area for input
-    source_text = tk.Text(input_frame, height=15, width=40, bg="black", fg="white", insertbackground="white")
+    source_text = tk.Text(input_frame, height=15, width=30, bg="black", fg="white", insertbackground="white")
     source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 
     # Conversion frame for calculations and results
@@ -392,9 +407,6 @@ def show_ino_tool(root, main_frame):
     result_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
     result_entry.grid(row=5, column=1, padx=5, pady=5, columnspan=2)
 
-    # Separator
-    tk.Frame(conversion_frame, height=1, width=300, bg="black").grid(row=6, column=0, columnspan=4, pady=5)
-
     # Template frame
     template_frame = tk.Frame(frame, bg="black")
     template_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
@@ -419,14 +431,14 @@ def show_ino_tool(root, main_frame):
     first_three_templates = template_order[:3] if len(template_order) >= 3 else template_order
 
     # Create copy buttons for the first three templates
-    copy_template1_button = tk.Button(template_frame, text=" # 1", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[0]), copy_template1_button), bg="black", fg="white")
-    copy_template1_button.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+    copy_template1_button = tk.Button(template_frame, text=" #  1  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[0]), copy_template1_button), bg="black", fg="white")
+    copy_template1_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
     
-    copy_template2_button = tk.Button(template_frame, text=" # 2", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[1]), copy_template2_button), bg="black", fg="white")
-    copy_template2_button.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+    copy_template2_button = tk.Button(template_frame, text="  # 2  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[1]), copy_template2_button), bg="black", fg="white")
+    copy_template2_button.grid(row=0, column=2, padx=5, pady=5, sticky="w")
     
-    copy_template3_button = tk.Button(template_frame, text=" # 3", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[2]), bg="black", fg="white"))
-    copy_template3_button.grid(row=1, column=2, padx=5, pady=5, sticky="ew")
+    copy_template3_button = tk.Button(template_frame, text="  # 3  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[2]), copy_template3_button), bg="black", fg="white")
+    copy_template3_button.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
    # Abbreviation search frame
     abbreviation_frame = tk.Frame(frame, bg="black")
@@ -478,7 +490,7 @@ def show_ino_tool(root, main_frame):
     sorted_copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(root, sorted_text.get("1.0", tk.END).strip(), sorted_copy_button), bg="black", fg="white")
     sorted_copy_button.grid(row=6, column=0, padx=5, pady=5)
 
-    # Column 2: Canvases
+    # Column 2: Oroginal and Sorted canvases
     column_two_frame = tk.Frame(frame, bg="black")
     column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
     column_two_frame.grid_rowconfigure(0, weight=1)

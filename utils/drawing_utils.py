@@ -1,6 +1,7 @@
 # utils/drawing_utils.py
 import tkinter as tk
 from tkinter import messagebox
+import tkinter.font as tkFont
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib
 import matplotlib.pyplot as plt
@@ -255,8 +256,6 @@ def show_on_map(original_coords, sorted_coords):
     else:
         plot_coordinates(original_coords, sorted_coords)
 
-import tkinter.font as tkFont
-
 def draw_coordinates(coords, canvas):
     canvas.delete("all")
     
@@ -282,8 +281,9 @@ def draw_coordinates(coords, canvas):
         lon_diff = max_lon - min_lon if max_lon != min_lon else 1e-5
         lat_diff = max_lat - min_lat if max_lat != min_lat else 1e-5
 
-        x = (lon - min_lon) / lon_diff * canvas.winfo_width()
-        y = (max_lat - lat) / lat_diff * canvas.winfo_height()
+        # Ensure the points stay within canvas bounds
+        x = (lon - min_lon) / lon_diff * (canvas.winfo_width() - 20) + 10
+        y = (max_lat - lat) / lat_diff * (canvas.winfo_height() - 20) + 10
 
         return x, y
 
