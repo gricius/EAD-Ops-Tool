@@ -16,7 +16,17 @@ def show_copied_modal(root, parent_frame):
     modal.geometry(f"+{parent_frame.winfo_rootx() + parent_frame.winfo_width() // 2 - modal.winfo_width() // 2}+{parent_frame.winfo_rooty() + parent_frame.winfo_height() // 2 - modal.winfo_height() // 2}")
     root.wait_window(modal)
 
-def paste_from_clipboard(root, source_text, original_text=None, sorted_text=None, original_canvas=None, sorted_canvas=None, parent_frame=None):
+def paste_from_clipboard(
+        root,
+        source_text,
+        original_text=None,
+        sorted_text=None,
+        original_canvas=None,
+        sorted_canvas=None,
+        *,
+        parent_frame=None,
+        current_theme=None
+    ):
     clipboard_content = root.clipboard_get()
     source_text.delete("1.0", tk.END)
     source_text.insert(tk.END, clipboard_content)
@@ -27,13 +37,18 @@ def paste_from_clipboard(root, source_text, original_text=None, sorted_text=None
         original_text.delete("1.0", tk.END)
         if coords:
             original_text.insert(tk.END, "\n".join(coords))
-            # paste to clipboard
+            # Copy to clipboard
             root.clipboard_clear()
             root.clipboard_append("\n".join(coords))
             if parent_frame is not None:
                 show_copied_modal(root, parent_frame)
         else:
-            original_text.insert(tk.END, "No valid format coordinates found. Supported formats are: DD MM[NS] DDD MM [EW], DD MM SS[NS] DDD MM SS[EW], DD MM SS.d2(4)[NS] DDD MM SS.d2[4][EW]")
+            original_text.insert(
+                tk.END,
+                "No valid format coordinates found. Supported formats are: "
+                "DD MM[NS] DDD MM [EW], DD MM SS[NS] DDD MM SS[EW], "
+                "DD MM SS.d2(4)[NS] DDD MM SS.d2(4)[EW]"
+            )
     
     if sorted_text is not None:
         if coords and len(coords) > 1:
@@ -45,9 +60,14 @@ def paste_from_clipboard(root, source_text, original_text=None, sorted_text=None
         sorted_text.delete("1.0", tk.END)
         sorted_text.insert(tk.END, "\n".join(sorted_coords))
         
-        if original_canvas is not None and sorted_canvas is not None:
-            draw_coordinates(coords, original_canvas)
-            draw_coordinates(sorted_coords, sorted_canvas)
+    # Update the canvases with the current theme
+    if original_canvas is not None:
+        draw_coordinates(coords, original_canvas, current_theme)
+    if sorted_canvas is not None:
+        draw_coordinates(sorted_coords, sorted_canvas, current_theme)
     
     if invalid_coords:
-        messagebox.showwarning('Warning', f'The following coordinates are invalid and were skipped:\n' + '\n'.join(invalid_coords))
+        messagebox.showwarning(
+            'Warning',
+            'The following coordinates are invalid and were skipped:\n' + '\n'.join(invalid_coords)
+        )

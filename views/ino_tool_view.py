@@ -3,7 +3,6 @@ import tkinter as tk
 import tkinter.font as tkFont
 from utils.clipboard_utils import paste_from_clipboard
 from utils.drawing_utils import show_on_map, draw_coordinates
-# from utils.button_utils import copy_to_clipboard
 import re
 from tkinter import messagebox, filedialog
 import pandas as pd
@@ -56,6 +55,7 @@ def load_excel_data(file_path):
     except Exception as e:
         messagebox.showerror("Error", f"Failed to load Excel file: {e}")
         return None
+
 def copy_to_clipboard(root, text, button):
     """Copies text to the clipboard and updates the button to indicate success."""
     root.clipboard_clear()
@@ -77,7 +77,6 @@ def get_text_without_line_numbers(text_widget):
     clean_lines = [line.partition('. ')[2] if '. ' in line else line for line in lines]
     return '\n'.join(clean_lines)
 
-
 def search_abbreviation(abbr_text, decoded_text, root):
     """Perform search and display results in a modal pop-up window."""
     try:
@@ -90,7 +89,7 @@ def search_abbreviation(abbr_text, decoded_text, root):
             if abbr_text:
                 matches = sheet_df[sheet_df.iloc[:, 0].astype(str).str.lower().str.contains(abbr_text, na=False)]
                 results.extend((row.iloc[0], row.iloc[1], sheet_name) for _, row in matches.iterrows())
-                
+
             if decoded_text:
                 matches = sheet_df[sheet_df.iloc[:, 1].astype(str).str.lower().str.contains(decoded_text, na=False)]
                 results.extend((row.iloc[0], row.iloc[1], sheet_name) for _, row in matches.iterrows())
@@ -99,19 +98,18 @@ def search_abbreviation(abbr_text, decoded_text, root):
         if not results:
             messagebox.showinfo("No Results", "No matches found.")
             return
-        
+
         # Open a modal pop-up window
         result_popup = tk.Toplevel(root)
         result_popup.title("Search Results")
-        result_popup.configure(bg="black")
 
         # Set a minimum width for the modal window
         result_popup.geometry("900x300")  # Adjust this size if necessary to fit the results and button
 
         # Create a scrollable frame in the pop-up
-        canvas = tk.Canvas(result_popup, bg="black")
+        canvas = tk.Canvas(result_popup)
         scrollbar = tk.Scrollbar(result_popup, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas, bg="black")
+        scrollable_frame = tk.Frame(canvas)
 
         scrollable_frame.bind(
             "<Configure>",
@@ -133,15 +131,14 @@ def search_abbreviation(abbr_text, decoded_text, root):
 
 def create_result_widgets(result_frame, index, abbr, decoded, sheet_name, root):
     """Create and place result widgets in the result frame (now in the pop-up)."""
-    tk.Label(result_frame, text=f"Abbr: {abbr}, Decoded: {decoded}, Sheet: {sheet_name}", bg="black", fg="white").grid(row=2 * index, column=0, sticky="w")
+    tk.Label(result_frame, text=f"Abbr: {abbr}, Decoded: {decoded}, Sheet: {sheet_name}").grid(row=2 * index, column=0, sticky="w")
 
-    copy_button = tk.Button(result_frame, text="Copy", bg="black", fg="white")
+    copy_button = tk.Button(result_frame, text="Copy")
     copy_button.grid(row=2 * index, column=1, padx=5)
     copy_button.config(command=lambda: copy_to_clipboard(root, f"({decoded})", copy_button))
 
     # Separator
-    tk.Frame(result_frame, height=1, width=800, bg="white").grid(row=2 * index + 1, column=0, columnspan=2, pady=5)
-
+    tk.Frame(result_frame, height=1, width=800).grid(row=2 * index + 1, column=0, columnspan=2, pady=5)
 
 # Flight level calculation
 def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry, root):
@@ -179,7 +176,7 @@ def calculate_flight_level_value(result, height_value, uom_value):
     """Calculate the flight level based on height and unit of measure."""
     if not height_value:
         return result.iloc[0, 5]
-    
+
     if uom_value == "M":
         height_value = round(int(height_value) * 3.28084 + 49)
         selected_value = result.iloc[0, 5] * 100
@@ -191,8 +188,8 @@ def calculate_flight_level_value(result, height_value, uom_value):
 
 def create_entry_with_label(parent, label_text, entry_width, row, column):
     """Helper function to create a label and entry widget."""
-    tk.Label(parent, text=label_text, bg="black", fg="white").grid(row=row, column=column, padx=5, pady=5, sticky="e")
-    entry = tk.Entry(parent, width=entry_width, bg="black", fg="white", insertbackground="white")
+    tk.Label(parent, text=label_text).grid(row=row, column=column, padx=5, pady=5, sticky="e")
+    entry = tk.Entry(parent, width=entry_width)
     entry.grid(row=row, column=column + 1, padx=5, pady=5, sticky="w")
     return entry
 
@@ -201,25 +198,25 @@ def format_time_ranges(time_ranges):
         '01': 'JAN', '02': 'FEB', '03': 'MAR', '04': 'APR', '05': 'MAY', '06': 'JUN',
         '07': 'JUL', '08': 'AUG', '09': 'SEP', '10': 'OCT', '11': 'NOV', '12': 'DEC'
     }
-    
+
     formatted_output = []
     previous_date = ""
-    
+
     for i, time_range in enumerate(time_ranges):
         start, end = time_range.split(' TO ')
         start_date = start[2:6]  # Extract MMDD (MMDD for start date)
         end_date = end[2:6]      # Extract MMDD (MMDD for end date)
-        
+
         # Format start and end times as HHMM
         start_time = start[6:]
         end_time = end[6:]
-        
+
         # Month and day formatting
         start_month = months[start[2:4]]
         start_day = start[4:6]
         end_month = months[end[2:4]]
         end_day = end[4:6]
-        
+
         if start_date == previous_date:
             # Same day, just append the time range
             if start_date == end_date:
@@ -247,7 +244,7 @@ def format_time_ranges(time_ranges):
                     if formatted_output:
                         formatted_output[-1] += ","  # Add a comma before the next date range
                     formatted_output.append(f"{start_month} {start_day} {start_time}-{end_month} {end_day} {end_time}")
-        
+
         # Update the previous date to the current start date
         previous_date = start_date
 
@@ -258,14 +255,14 @@ def paste_time_ranges(root, time_text):
 
     # Extract time ranges in ICAO format using regex
     time_ranges = re.findall(r'\d{10} TO \d{10}', clipboard_content)
-    
+
     if not time_ranges:
         messagebox.showwarning("Invalid Input", "No valid time ranges found in the clipboard")
         return
 
     # Format the time ranges
     formatted_times = format_time_ranges(time_ranges)
-    
+
     # Clear the text area and insert formatted times
     time_text.delete("1.0", tk.END)
     time_text.insert(tk.END, formatted_times)
@@ -284,7 +281,7 @@ def bind_paste_shortcuts(root, paste_and_add_line_numbers):
     # Binding Ctrl+Shift+P (uppercase P)
     root.bind_all("<Control-P>", on_paste_event)
 
-def show_ino_tool(root, main_frame):
+def show_ino_tool(root, main_frame, current_theme):
     global excel_file, excel_data
 
     # Clear the main frame
@@ -294,16 +291,16 @@ def show_ino_tool(root, main_frame):
     # Load configuration
     config = load_config()
     excel_file = config.get("excel_file_path")
-    
+
     if not excel_file or not os.path.exists(excel_file):
         excel_file = prompt_for_excel_file()  # Ask for the file if not found
-    
+
     excel_data = load_excel_data(excel_file)  # Load the Excel data
     if excel_data is None:
         return  # Stop if there's an error loading the data
-        
+
     # Set up the main frame layout
-    frame = tk.Frame(main_frame, bg="black", cursor="cross")
+    frame = tk.Frame(main_frame, cursor="cross")
     frame.grid(sticky="nsew", padx=5, pady=5)
 
     # Configure grid weights for responsiveness
@@ -311,18 +308,66 @@ def show_ino_tool(root, main_frame):
     frame.grid_columnconfigure(0, weight=1)
 
     # Input frame for paste buttons and text area
-    input_frame = tk.Frame(frame, bg="black")
+    input_frame = tk.Frame(frame)
     input_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
     input_frame.grid_columnconfigure(0, weight=1)  # Allow input frame to expand
 
-    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=lambda: paste_from_clipboard(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas), bg="black", fg="white")
+    # Text area for input
+    source_text = tk.Text(input_frame, height=15, width=30)
+    source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+
+    # Column 2: Original and Sorted canvases
+    column_two_frame = tk.Frame(frame)
+    column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
+    column_two_frame.grid_rowconfigure(0, weight=1)
+    column_two_frame.grid_columnconfigure(0, weight=1)
+
+    # Original canvas
+    original_canvas = tk.Canvas(column_two_frame, width=320, height=320, bg=current_theme['canvas_bg'])
+    original_canvas.grid(row=0, column=0, padx=5, pady=5)
+
+    # Sorted canvas
+    sorted_canvas = tk.Canvas(column_two_frame, width=320, height=320, bg=current_theme['canvas_bg'])
+    sorted_canvas.grid(row=1, column=0, padx=5, pady=5)
+
+    # Function to update the coordinate count label
+    def update_coord_count(event=None):
+        """Update the coordinate count in the original_label."""
+        original_text.edit_modified(False)  # Reset the modified flag
+        text = original_text.get("1.0", tk.END).strip()
+        if text:
+            num_coords = len(text.split('\n'))
+        else:
+            num_coords = 0
+        original_label.config(text=f"Original COORDs: {num_coords}")
+
+    # Function to paste and add line numbers
+    def paste_and_add_line_numbers():
+        paste_from_clipboard(
+            root,
+            source_text,
+            original_text=original_text,
+            sorted_text=sorted_text,
+            original_canvas=original_canvas,
+            sorted_canvas=sorted_canvas,
+            current_theme=current_theme
+        )
+        add_line_numbers_to_text_widget(original_text)
+        add_line_numbers_to_text_widget(sorted_text)
+        update_coord_count()
+
+    # Paste COORD button
+    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers,
+                                   bg=current_theme['button_bg'], fg=current_theme['fg'])
     paste_coord_button.grid(row=0, column=0, padx=5, pady=5)
 
-    paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text), bg="black", fg="white")
+    # Paste YB D) button
+    paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text),
+                                  bg=current_theme['button_bg'], fg=current_theme['fg'])
     paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
     # Text area for input
-    source_text = tk.Text(input_frame, height=15, width=30, bg="black", fg="white", insertbackground="white")
+    source_text = tk.Text(input_frame, height=15, width=30)
     source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 
     # Function to update the coordinate count label
@@ -338,46 +383,54 @@ def show_ino_tool(root, main_frame):
 
     # Function to paste and add line numbers
     def paste_and_add_line_numbers():
-        paste_from_clipboard(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas)
+        paste_from_clipboard(
+            root,
+            source_text,
+            original_text=original_text,
+            sorted_text=sorted_text,
+            original_canvas=original_canvas,
+            sorted_canvas=sorted_canvas,
+            current_theme=current_theme  # Pass current_theme here
+        )
         add_line_numbers_to_text_widget(original_text)
         add_line_numbers_to_text_widget(sorted_text)
         update_coord_count()
 
     # Paste COORD button
-    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers, bg="black", fg="white")
+    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers)
     paste_coord_button.grid(row=0, column=0, padx=5, pady=5)
 
     # Paste YB D) button
-    paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text), bg="black", fg="white")
+    paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text))
     paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
     # Conversion frame for calculations and results
-    conversion_frame = tk.Frame(frame, bg="black")
+    conversion_frame = tk.Frame(frame)
     conversion_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
     conversion_frame.grid_columnconfigure(1, weight=1)
 
     # KM to NM conversion
-    km_label = tk.Label(conversion_frame, text="KM", bg="black", fg="white")
+    km_label = tk.Label(conversion_frame, text="KM")
     km_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    km_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
+    km_entry = tk.Entry(conversion_frame, width=10)
     km_entry.grid(row=0, column=1, padx=5, pady=5)
 
     # NM to KM conversion
-    nm_label = tk.Label(conversion_frame, text="NM", bg="black", fg="white")
+    nm_label = tk.Label(conversion_frame, text="NM")
     nm_label.grid(row=0, column=2, padx=5, pady=5, sticky="e")
-    nm_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
+    nm_entry = tk.Entry(conversion_frame, width=10)
     nm_entry.grid(row=0, column=3, padx=5, pady=5)
 
     # MT to FT conversion
-    mt_label = tk.Label(conversion_frame, text="MT", bg="black", fg="white")
+    mt_label = tk.Label(conversion_frame, text="MT")
     mt_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    mt_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
+    mt_entry = tk.Entry(conversion_frame, width=10)
     mt_entry.grid(row=1, column=1, padx=5, pady=5)
 
     # FT to MT conversion
-    ft_label = tk.Label(conversion_frame, text="FT", bg="black", fg="white")
+    ft_label = tk.Label(conversion_frame, text="FT")
     ft_label.grid(row=1, column=2, padx=5, pady=5, sticky="e")
-    ft_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
+    ft_entry = tk.Entry(conversion_frame, width=10)
     ft_entry.grid(row=1, column=3, padx=5, pady=5)
 
     def convert_km_to_nm(event):
@@ -422,33 +475,33 @@ def show_ino_tool(root, main_frame):
     ft_entry.bind("<FocusOut>", convert_ft_to_mt)
 
     # Flight level conversion
-    tk.Label(conversion_frame, text="NOF", bg="black", fg="white").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    nof_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
+    tk.Label(conversion_frame, text="NOF").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+    nof_entry = tk.Entry(conversion_frame, width=10)
     nof_entry.grid(row=2, column=1, padx=5, pady=5)
 
-    tk.Label(conversion_frame, text="Height", bg="black", fg="white").grid(row=2, column=2, padx=5, pady=5, sticky="e")
+    tk.Label(conversion_frame, text="Height").grid(row=2, column=2, padx=5, pady=5, sticky="e")
     height_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
     height_entry.grid(row=2, column=3, padx=5, pady=5)
 
-    tk.Label(conversion_frame, text="UOM", bg="black", fg="white").grid(row=3, column=0, padx=5, pady=5)
+    tk.Label(conversion_frame, text="UOM").grid(row=3, column=0, padx=5, pady=5)
     uom_var = tk.StringVar(value="M")
-    tk.Radiobutton(conversion_frame, text="M", variable=uom_var, value="M", bg="black", fg="white", selectcolor="black").grid(row=3, column=1, padx=5, sticky="w")
-    tk.Radiobutton(conversion_frame, text="FT", variable=uom_var, value="FT", bg="black", fg="white", selectcolor="black").grid(row=3, column=2, padx=5, sticky="w")
+    tk.Radiobutton(conversion_frame, text="M", variable=uom_var, value="M").grid(row=3, column=1, padx=5, sticky="w")
+    tk.Radiobutton(conversion_frame, text="FT", variable=uom_var, value="FT").grid(row=3, column=2, padx=5, sticky="w")
 
-    calculate_button = tk.Button(conversion_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, result_entry, root), bg="black", fg="white")
+    calculate_button = tk.Button(conversion_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, result_entry, root))
     calculate_button.grid(row=4, column=0, columnspan=2, pady=5, sticky="ew")
 
-    result_label = tk.Label(conversion_frame, text="Result", bg="black", fg="white")
+    result_label = tk.Label(conversion_frame, text="Result")
     result_label.grid(row=5, column=0, padx=5, pady=5, sticky="e")
-    result_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
+    result_entry = tk.Entry(conversion_frame, width=10)
     result_entry.grid(row=5, column=1, padx=5, pady=5, columnspan=2)
 
     # Template frame
-    template_frame = tk.Frame(frame, bg="black")
+    template_frame = tk.Frame(frame)
     template_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
     template_frame.grid_columnconfigure(1, weight=1)
 
-    tpl_label = tk.Label(template_frame, text="Copy template:", bg="black", fg="white")
+    tpl_label = tk.Label(template_frame, text="Copy template:")
     tpl_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
 
     from views.templates_view import load_template_order  # Ensure this import is correct
@@ -467,47 +520,48 @@ def show_ino_tool(root, main_frame):
     first_three_templates = template_order[:3] if len(template_order) >= 3 else template_order
 
     # Create copy buttons for the first three templates
-    copy_template1_button = tk.Button(template_frame, text=" #  1  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[0]), copy_template1_button), bg="black", fg="white")
+    copy_template1_button = tk.Button(template_frame, text=" #  1  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[0]), copy_template1_button))
     copy_template1_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
     
-    copy_template2_button = tk.Button(template_frame, text="  # 2  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[1]), copy_template2_button), bg="black", fg="white")
+    copy_template2_button = tk.Button(template_frame, text="  # 2  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[1]), copy_template2_button))
     copy_template2_button.grid(row=0, column=2, padx=5, pady=5, sticky="w")
     
-    copy_template3_button = tk.Button(template_frame, text="  # 3  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[2]), copy_template3_button), bg="black", fg="white")
+    copy_template3_button = tk.Button(template_frame, text="  # 3  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[2]), copy_template3_button))
     copy_template3_button.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
    # Abbreviation search frame
-    abbreviation_frame = tk.Frame(frame, bg="black")
+    abbreviation_frame = tk.Frame(frame)
     abbreviation_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
     
     abbr_entry = create_entry_with_label(abbreviation_frame, "Abbr.", 20, 0, 0)
     decoded_entry = create_entry_with_label(abbreviation_frame, "Decoded", 20, 1, 0)
 
-    search_button = tk.Button(abbreviation_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), root), bg="black", fg="white")
+    search_button = tk.Button(abbreviation_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), root))
     search_button.grid(row=2, column=0, columnspan=2, pady=5)
 
     # Abbreviation result frame
-    result_frame = tk.Frame(frame, bg="black")
-    result_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
+    # result_frame = tk.Frame(frame)
+    # result_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
 
-    # Column 1: Show on map, original/sorted text, and copy buttons
-    column_one_frame = tk.Frame(frame, bg="black")
+     # Column 1: Show on map, original/sorted text, and copy buttons
+    column_one_frame = tk.Frame(frame)
     column_one_frame.grid(row=0, column=1, rowspan=4, padx=5, pady=5, sticky="new")
     column_one_frame.grid_rowconfigure(0, weight=1)
     column_one_frame.grid_columnconfigure(0, weight=1)
 
+    # Show on map button
     show_map_button = tk.Button(column_one_frame, text="Show on map", command=lambda: show_on_map(
         [coord.partition('. ')[2] for coord in original_text.get("1.0", "end-1c").split('\n') if coord],
         [coord.partition('. ')[2] for coord in sorted_text.get("1.0", "end-1c").split('\n') if coord]
-    ), bg="black", fg="white")
+    ))
     show_map_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
     # Original text label with coordinate count
-    original_label = tk.Label(column_one_frame, text="Original COORDs: 0", bg="black", fg="white")
+    original_label = tk.Label(column_one_frame, text="Original COORDs: 0", bg=current_theme['bg'], fg=current_theme['fg'])
     original_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
     # Original text
-    original_text = tk.Text(column_one_frame, height=12, width=19, bg="black", fg="white", insertbackground="white")
+    original_text = tk.Text(column_one_frame, height=12, width=19, bg=current_theme['bg'], fg=current_theme['fg'], insertbackground=current_theme['fg'])
     original_text.grid(row=2, column=0, padx=5, pady=5)
 
     # Configure right alignment tag for original_text
@@ -517,38 +571,40 @@ def show_ino_tool(root, main_frame):
     original_text.bind('<KeyRelease>', update_coord_count)
     original_text.bind('<<Modified>>', update_coord_count)
 
-    # Copy button for original text (modified to strip line numbers)
-    copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(
-        root, get_text_without_line_numbers(original_text), copy_button
-    ), bg="black", fg="white")
-    copy_button.grid(row=3, column=0, padx=5, pady=5)
+    # Copy button for original text
+    original_copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(
+        root, get_text_without_line_numbers(original_text), original_copy_button
+    ))
+    original_copy_button.grid(row=3, column=0, padx=5, pady=5)
+
 
     # Sorted text label
-    sorted_label = tk.Label(column_one_frame, text="Sorted COORDs", bg="black", fg="white")
+    sorted_label = tk.Label(column_one_frame, text="Sorted COORDs", bg=current_theme['bg'], fg=current_theme['fg'])
     sorted_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
 
     # Sorted text
-    sorted_text = tk.Text(column_one_frame, height=10, width=19, bg="black", fg="white", insertbackground="white")
+    sorted_text = tk.Text(column_one_frame, height=10, width=19, bg=current_theme['bg'], fg=current_theme['fg'], insertbackground=current_theme['fg'])
     sorted_text.grid(row=5, column=0, padx=5, pady=5)
 
     # Copy button for sorted text (modified to strip line numbers)
     sorted_copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(
         root, get_text_without_line_numbers(sorted_text), sorted_copy_button
-    ), bg="black", fg="white")
+    ))
     sorted_copy_button.grid(row=6, column=0, padx=5, pady=5)
 
     # Column 2: Oroginal and Sorted canvases
-    column_two_frame = tk.Frame(frame, bg="black")
+    column_two_frame = tk.Frame(frame)
     column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
     column_two_frame.grid_rowconfigure(0, weight=1)
     column_two_frame.grid_columnconfigure(0, weight=1)
 
     # Original canvas
-    original_canvas = tk.Canvas(column_two_frame, bg="black", width=320, height=320)
+    original_canvas = tk.Canvas(column_two_frame, width=320, height=320, bg=current_theme['canvas_bg'])
     original_canvas.grid(row=0, column=0, padx=5, pady=5)
 
+
     # Sorted canvas
-    sorted_canvas = tk.Canvas(column_two_frame, bg="black", width=320, height=320)
+    sorted_canvas = tk.Canvas(column_two_frame, width=320, height=320, bg=current_theme['canvas_bg'])
     sorted_canvas.grid(row=1, column=0, padx=5, pady=5)
 
     # Bind Ctrl+P or Ctrl+Shift+P to paste_from_clipboard
@@ -558,7 +614,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("INO Tool")
 
-    main_frame = tk.Frame(root, bg="black")
+    main_frame = tk.Frame(root)
     main_frame.pack(fill="both", expand=True)
 
     show_ino_tool(root, main_frame)

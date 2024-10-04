@@ -18,7 +18,7 @@ def show_home(root, main_frame):
     except FileNotFoundError:
         news_content = "No recent updates."
 
-    news_label = tk.Label(frame, text='News, hints etc.:\n\n', font=("Arial", 12))
+    news_label = tk.Label(frame, text='News, hints etc.:', font=("Arial", 12))
     news_label.pack(pady=10)
 
     news_label = tk.Label(frame, text=f"{news_content}", justify=tk.LEFT, wraplength=600, font=("Italic", 10))
@@ -72,14 +72,6 @@ def show_home(root, main_frame):
         text_widget.config(state="disabled")
 
 
-
-                                                
-
-
     # add a button to show modal top level window information about the application
     button = tk.Button(frame, text="About the EAD OPS Tool", command=lambda: show_info(root))
     button.pack(pady=10)
-
-## ToDO: Add description of the application
-
-## ToDO: Add a button to show the news in a new window?

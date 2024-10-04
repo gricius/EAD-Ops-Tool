@@ -3,7 +3,7 @@ import tkinter as tk
 from utils.clipboard_utils import paste_from_clipboard
 from utils.misc_utils import find_and_replace
 
-def show_notepad(root, main_frame):
+def show_notepad(root, main_frame, current_theme):
     # Clear the main frame
     for widget in main_frame.winfo_children():
         widget.destroy()

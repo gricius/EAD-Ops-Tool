@@ -6,11 +6,12 @@ a = Analysis(
     hiddenimports=['pyogrio._geometry'],
     binaries=[],
     datas=[
-    ('shapes/*.shp', 'shapes'),
-    ('shapes/*.dbf', 'shapes'),
-    ('shapes/*.shx', 'shapes'),
-    ('assets/images/transparent_purple_plane_v1.png', 'assets/images'),
-    ('C:/Users/grici/miniconda3/Library/share/gdal', 'gdal'),
+        ('shapes/*.shp', 'shapes'),
+        ('shapes/*.dbf', 'shapes'),
+        ('shapes/*.shx', 'shapes'),
+        ('assets/images/transparent_purple_plane_v1.png', 'assets/images'),
+        ('assets/images/ead_ops_tool_32.ico', 'assets/images'),  
+        ('C:/Users/grici/miniconda3/Library/share/gdal', 'gdal'),
 ],
     hookspath=[],
     hooksconfig={},
@@ -34,11 +35,11 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,  # Set this to False to start without terminal
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='assets/images/purple_plane_big.ico'
+    icon='assets/images/ead_ops_tool_32.ico'
     )

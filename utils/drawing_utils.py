@@ -256,7 +256,7 @@ def show_on_map(original_coords, sorted_coords):
     else:
         plot_coordinates(original_coords, sorted_coords)
 
-def draw_coordinates(coords, canvas):
+def draw_coordinates(coords, canvas, current_theme):
     canvas.delete("all")
     
     if not coords:
@@ -287,22 +287,27 @@ def draw_coordinates(coords, canvas):
 
         return x, y
 
-    # Define the font for the text (bold and white)
-    bold_white_font = tkFont.Font(family="Helvetica", size=10, weight="bold")
+    # Define the font for the text
+    bold_font = tkFont.Font(family="Helvetica", size=10, weight="bold")
+
+    # Get colors from current_theme
+    point_fill_color = current_theme.get('point_fill_color', current_theme['canvas_fg'])
+    line_color = current_theme.get('line_color', current_theme['canvas_fg'])
+    text_color = current_theme.get('text_color', current_theme['canvas_fg'])
 
     # Plot points and lines on the canvas
     for i, (lat, lon) in enumerate(zip(lats, lons)):
         x, y = transform(lat, lon)
-        canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill="blue")
-        canvas.create_text(x, y, text=str(i + 1), anchor=tk.NW, fill="white", font=bold_white_font)
+        canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill=point_fill_color)
+        canvas.create_text(x, y, text=str(i + 1), anchor=tk.NW, fill=text_color, font=bold_font)
 
     for i in range(len(lats) - 1):
         x1, y1 = transform(lats[i], lons[i])
         x2, y2 = transform(lats[i + 1], lons[i + 1])
-        canvas.create_line(x1, y1, x2, y2, fill="blue")
+        canvas.create_line(x1, y1, x2, y2, fill=line_color)
 
     # Close the polygon by connecting the last point to the first
     x1, y1 = transform(lats[-1], lons[-1])
     x2, y2 = transform(lats[0], lons[0])
-    canvas.create_line(x1, y1, x2, y2, fill="blue")
+    canvas.create_line(x1, y1, x2, y2, fill=line_color)
 
