@@ -106,7 +106,7 @@ def plot_geodesic_circle(ax, lon, lat, radius_nm, color, label):
     ax.plot(circle[:, 0], circle[:, 1], color=color, linestyle='--', transform=ccrs.Geodetic(), label=label)
     warnings.filterwarnings("ignore", message="Legend does not support handles for PatchCollection instances.")
 
-def plot_base_map(ax, countries_gdf, disputed_areas_gdf, disputed_boundaries_gdf, elevation_points_gdf, raster_path=None):
+def plot_base_map(ax, countries_gdf, disputed_areas_gdf, elevation_points_gdf, raster_path=None):
     """
     Plot base map including countries, disputed areas, and an optional raster background.
     
@@ -131,8 +131,15 @@ def plot_base_map(ax, countries_gdf, disputed_areas_gdf, disputed_boundaries_gdf
         centroid = country.geometry.centroid
         ax.text(centroid.x, centroid.y, country['NAME'], fontsize=10, color='black', transform=ccrs.PlateCarree())
 
+    # Plot disputed boundaries
     disputed_areas_gdf.plot(ax=ax, edgecolor='red', facecolor='none', linestyle='--', transform=ccrs.PlateCarree(), label="Disputed Areas")
-    disputed_boundaries_gdf.plot(ax=ax, edgecolor='red', linestyle='--', transform=ccrs.PlateCarree(), label="Disputed Boundaries")
+    # disputed_boundaries_gdf.plot(ax=ax, edgecolor='red', linestyle='--', transform=ccrs.PlateCarree(), label="Disputed Boundaries")
+
+    # Plot disputed areas BRK_NAME
+    for _, disputed_area in disputed_areas_gdf.iterrows():
+        centroid = disputed_area.geometry.centroid
+        ax.text(centroid.x, centroid.y, disputed_area['BRK_NAME'], fontsize=8, color='red', transform=ccrs.PlateCarree())
+    
 
     # Plot elevation points
     for _, elevation_point in elevation_points_gdf.iterrows():
@@ -157,7 +164,7 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
             distance_nm = geodesic((center_lat, center_lon), (airport_lat, airport_lon)).nautical
             if distance_nm <= max_distance_nm:
                 plot_airplane_icon(ax, airport_lon, airport_lat, airplane_img)
-                airport_ident_name = f"{record['ident']} - {record['name']} ({decimal_degrees_to_dms(airport_lat, True)}, {decimal_degrees_to_dms(airport_lon, False)})"
+                airport_ident_name = f"{record['ident']} - {record['name']}"
                 ax.text(airport_lon + 0.05, airport_lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
 
 def plot_coordinates(original_coords, sorted_coords):
@@ -178,7 +185,7 @@ def plot_coordinates(original_coords, sorted_coords):
     plot_base_map(ax, 
               load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
               load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
-              load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
+            #   load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
               load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
               raster_path=get_resource_path('shapes/NE1_50M_SR_W.tif')
                 )
@@ -200,10 +207,10 @@ def plot_coordinates(original_coords, sorted_coords):
     plot_geodesic_circle(ax, center_lon, center_lat, max_distance_nm, 'green', f'{max_distance_nm:.2f} NM Enclosing Circle')
 
     # Plot airports within bounding box
-    delta_deg = 25 * 1.852 / 110.574  # Approx conversion of NM to degrees
+    delta_deg = 25 * 1.852 / 110.574 + max_distance_nm # Approx conversion of NM to degrees
     bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")  # Ensure the airports are loaded correctly
-    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, 25)
+    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, delta_deg)
 
     # Display center coordinates and radius
     ax.text(center_lon, center_lat, f"Center: {decimal_degrees_to_dms(center_lat)}, {decimal_degrees_to_dms(center_lon)}\nRadius: {max_distance_nm:.2f} NM",
@@ -222,17 +229,17 @@ def show_single_coord_on_map(coord):
         messagebox.showwarning('Warning', 'Invalid coordinate for plotting.')
         return
 
-    fig, ax = plt.subplots(figsize=(12, 10), subplot_kw={'projection': ccrs.PlateCarree()})
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': ccrs.PlateCarree()})
     # Remove padding around the plot
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
-    extent_margin = 1.0
+    extent_margin = 2.0
     ax.set_extent([lon - extent_margin, lon + extent_margin, lat - extent_margin, lat + extent_margin], crs=ccrs.PlateCarree())
 
     plot_base_map(ax, 
                   load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
-                  load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
+                #   load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
                   load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),)
 
     ax.plot(lon, lat, marker='o', color='blue', markersize=8, transform=ccrs.PlateCarree(), label=f'{coord}')
