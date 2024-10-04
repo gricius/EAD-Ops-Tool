@@ -66,6 +66,7 @@ def create_main_window():
     def show_notepad_view():
         show_notepad(root, main_frame)
         highlight_button(buttons['Notepad'])
+        set_theme(main_frame)
 
     def show_todo_view():
         show_todo(root, main_frame)
