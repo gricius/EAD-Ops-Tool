@@ -3,7 +3,7 @@ import tkinter as tk
 import tkinter.font as tkFont
 from utils.clipboard_utils import paste_from_clipboard
 from utils.drawing_utils import show_on_map, draw_coordinates
-from utils.button_utils import copy_to_clipboard
+# from utils.button_utils import copy_to_clipboard
 import re
 from tkinter import messagebox, filedialog
 import pandas as pd
@@ -56,17 +56,27 @@ def load_excel_data(file_path):
     except Exception as e:
         messagebox.showerror("Error", f"Failed to load Excel file: {e}")
         return None
-    
-def update_line_numbers(text_widget, line_widget):
-    """ Update line numbers for the text widget. """
-    line_widget.config(state=tk.NORMAL)
-    line_widget.delete("1.0", tk.END)
+def copy_to_clipboard(root, text, button):
+    """Copies text to the clipboard and updates the button to indicate success."""
+    root.clipboard_clear()
+    root.clipboard_append(text)
 
-    lines = text_widget.index(tk.END).split('.')[0]
-    for line in range(1, int(lines)):
-        line_widget.insert(tk.END, f"{line}\n")
+def add_line_numbers_to_text_widget(text_widget):
+    """Add line numbers to each line in the text widget."""
+    text = text_widget.get("1.0", tk.END).strip()
+    lines = text.split('\n')
+    text_widget.delete("1.0", tk.END)
+    for i, line in enumerate(lines):
+        numbered_line = f"{i+1}. {line}"
+        text_widget.insert(tk.END, numbered_line + '\n', 'right_align')
 
-    line_widget.config(state=tk.DISABLED)
+def get_text_without_line_numbers(text_widget):
+    """Retrieve text from a text widget, stripping line numbers."""
+    text = text_widget.get("1.0", tk.END).strip()
+    lines = text.split('\n')
+    clean_lines = [line.partition('. ')[2] if '. ' in line else line for line in lines]
+    return '\n'.join(clean_lines)
+
 
 def search_abbreviation(abbr_text, decoded_text, root):
     """Perform search and display results in a modal pop-up window."""
@@ -263,16 +273,16 @@ def paste_time_ranges(root, time_text):
     # Copy the formatted times to the clipboard
     copy_to_clipboard(root, formatted_times, None)  # Passing None for the button as it's not associated here
 
-def bind_paste_shortcuts(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas):
-    # Bind both Ctrl+P and Ctrl+Shift+P to call paste_from_clipboard function
+def bind_paste_shortcuts(root, paste_and_add_line_numbers):
+    # Bind both Ctrl+P and Ctrl+Shift+P to call paste_and_add_line_numbers function
     def on_paste_event(event):
-        paste_from_clipboard(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas)
+        paste_and_add_line_numbers()
 
     # Binding Ctrl+P (lowercase p)
     root.bind_all("<Control-p>", on_paste_event)
 
     # Binding Ctrl+Shift+P (uppercase P)
-    root.bind_all("<Control-P>", on_paste_event)   
+    root.bind_all("<Control-P>", on_paste_event)
 
 def show_ino_tool(root, main_frame):
     global excel_file, excel_data
@@ -314,6 +324,32 @@ def show_ino_tool(root, main_frame):
     # Text area for input
     source_text = tk.Text(input_frame, height=15, width=30, bg="black", fg="white", insertbackground="white")
     source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+
+    # Function to update the coordinate count label
+    def update_coord_count(event=None):
+        """Update the coordinate count in the original_label."""
+        original_text.edit_modified(False)  # Reset the modified flag
+        text = original_text.get("1.0", tk.END).strip()
+        if text:
+            num_coords = len(text.split('\n'))
+        else:
+            num_coords = 0
+        original_label.config(text=f"Original COORDs: {num_coords}")
+
+    # Function to paste and add line numbers
+    def paste_and_add_line_numbers():
+        paste_from_clipboard(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas)
+        add_line_numbers_to_text_widget(original_text)
+        add_line_numbers_to_text_widget(sorted_text)
+        update_coord_count()
+
+    # Paste COORD button
+    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers, bg="black", fg="white")
+    paste_coord_button.grid(row=0, column=0, padx=5, pady=5)
+
+    # Paste YB D) button
+    paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text), bg="black", fg="white")
+    paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
     # Conversion frame for calculations and results
     conversion_frame = tk.Frame(frame, bg="black")
@@ -456,26 +492,35 @@ def show_ino_tool(root, main_frame):
 
     # Column 1: Show on map, original/sorted text, and copy buttons
     column_one_frame = tk.Frame(frame, bg="black")
-    column_one_frame.grid(row=0, column=1, rowspan=4, padx=5, pady=5, sticky="nsew")
+    column_one_frame.grid(row=0, column=1, rowspan=4, padx=5, pady=5, sticky="new")
     column_one_frame.grid_rowconfigure(0, weight=1)
     column_one_frame.grid_columnconfigure(0, weight=1)
 
     show_map_button = tk.Button(column_one_frame, text="Show on map", command=lambda: show_on_map(
-        [coord for coord in original_text.get("1.0", "end-1c").split('\n') if coord],
-        [coord for coord in sorted_text.get("1.0", "end-1c").split('\n') if coord]
+        [coord.partition('. ')[2] for coord in original_text.get("1.0", "end-1c").split('\n') if coord],
+        [coord.partition('. ')[2] for coord in sorted_text.get("1.0", "end-1c").split('\n') if coord]
     ), bg="black", fg="white")
     show_map_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-    # Original text label
-    original_label = tk.Label(column_one_frame, text="Original COORDs", bg="black", fg="white")
+    # Original text label with coordinate count
+    original_label = tk.Label(column_one_frame, text="Original COORDs: 0", bg="black", fg="white")
     original_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
     # Original text
-    original_text = tk.Text(column_one_frame, height=10, width=15, bg="black", fg="white", insertbackground="white")
+    original_text = tk.Text(column_one_frame, height=12, width=19, bg="black", fg="white", insertbackground="white")
     original_text.grid(row=2, column=0, padx=5, pady=5)
 
-    # Copy button to replace Windows clipboard with original text
-    copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(root, original_text.get("1.0", tk.END).strip(), copy_button), bg="black", fg="white")
+    # Configure right alignment tag for original_text
+    original_text.tag_configure('right_align', justify='right')
+
+    # Bind events to update the coordinate count whenever the text changes
+    original_text.bind('<KeyRelease>', update_coord_count)
+    original_text.bind('<<Modified>>', update_coord_count)
+
+    # Copy button for original text (modified to strip line numbers)
+    copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(
+        root, get_text_without_line_numbers(original_text), copy_button
+    ), bg="black", fg="white")
     copy_button.grid(row=3, column=0, padx=5, pady=5)
 
     # Sorted text label
@@ -483,11 +528,13 @@ def show_ino_tool(root, main_frame):
     sorted_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
 
     # Sorted text
-    sorted_text = tk.Text(column_one_frame, height=10, width=15, bg="black", fg="white", insertbackground="white")
+    sorted_text = tk.Text(column_one_frame, height=10, width=19, bg="black", fg="white", insertbackground="white")
     sorted_text.grid(row=5, column=0, padx=5, pady=5)
 
-    # Copy button to replace Windows clipboard with sorted text
-    sorted_copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(root, sorted_text.get("1.0", tk.END).strip(), sorted_copy_button), bg="black", fg="white")
+    # Copy button for sorted text (modified to strip line numbers)
+    sorted_copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(
+        root, get_text_without_line_numbers(sorted_text), sorted_copy_button
+    ), bg="black", fg="white")
     sorted_copy_button.grid(row=6, column=0, padx=5, pady=5)
 
     # Column 2: Oroginal and Sorted canvases
@@ -505,7 +552,7 @@ def show_ino_tool(root, main_frame):
     sorted_canvas.grid(row=1, column=0, padx=5, pady=5)
 
     # Bind Ctrl+P or Ctrl+Shift+P to paste_from_clipboard
-    bind_paste_shortcuts(root, source_text, original_text, sorted_text, original_canvas, sorted_canvas)
+    bind_paste_shortcuts(root, paste_and_add_line_numbers)
 
 if __name__ == "__main__":
     root = tk.Tk()

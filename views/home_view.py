@@ -9,7 +9,7 @@ def show_home(root, main_frame):
     frame = tk.Frame(main_frame)
     frame.pack(fill="both", expand=True)
 
-    header = tk.Label(frame, text="Disclaimer: This application shall not be used for operations. Can be used only for testing purposes.", font=("Arial", 14))
+    header = tk.Label(frame, text="Disclaimer: This application can be used only for testing purposes.", font=("Arial", 14))
     header.pack(pady=10)
 
     try:

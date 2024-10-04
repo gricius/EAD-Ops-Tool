@@ -1,7 +1,7 @@
+## gui.py
 import tkinter as tk
 from views.home_view import show_home
 from views.ino_tool_view import show_ino_tool
-# from views.abbreviation_tool_view import show_abbreviation_tool
 from views.notepad_view import show_notepad
 from views.todo_view import show_todo
 from views.templates_view import show_templates
@@ -18,7 +18,7 @@ def set_theme(widget):
 
 def create_main_window():
     root = tk.Tk()
-    # root.iconbitmap('assets/images/purple_plane_big.ico')
+    root.iconbitmap('assets/images/purple_plane_big.ico')
     root.title("EAD OPS Tool")
     root.geometry("800x750")
 
@@ -63,10 +63,6 @@ def create_main_window():
         show_ino_tool(root, main_frame)
         highlight_button(buttons['INO Tool'])
 
-    # def show_abbreviation_tool_view():
-    #     show_abbreviation_tool(root, main_frame)
-    #     highlight_button(buttons['Abbreviation Tool'])
-
     def show_notepad_view():
         show_notepad(root, main_frame)
         highlight_button(buttons['Notepad'])
@@ -81,7 +77,7 @@ def create_main_window():
 
     # Create buttons for navigation
     buttons = {}
-    btn_names = ['Home', 'INO Tool', 'Notepad', 'ToDo', 'Templates'] # 'Abbreviation Tool',
+    btn_names = ['Home', 'INO Tool', 'Notepad', 'ToDo', 'Templates'] 
     btn_commands = [show_home_view, show_ino_tool_view, show_notepad_view, show_todo_view, show_templates_view] # show_abbreviation_tool_view,
 
     for name, cmd in zip(btn_names, btn_commands):
