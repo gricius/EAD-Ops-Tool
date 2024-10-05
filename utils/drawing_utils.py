@@ -155,17 +155,22 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
     # Reproject airports to WGS84 (EPSG:4326) if needed
     airports_gdf = airports_gdf.to_crs("EPSG:4326")
 
-    # Filter airports by bounding box and plot
+    # Filter airports by bounding box
     airports_within_bbox = airports_gdf.loc[airports_gdf.sindex.intersection(bounding_box.bounds)]
+    
     for _, record in airports_within_bbox.iterrows():
         airport_geometry = record.geometry
         if isinstance(airport_geometry, Point):
             airport_lon, airport_lat = airport_geometry.x, airport_geometry.y
+            
+            # Calculate the distance in NM between the center and each airport
             distance_nm = geodesic((center_lat, center_lon), (airport_lat, airport_lon)).nautical
+            
+            # Plot only the airports within the max_distance_nm
             if distance_nm <= max_distance_nm:
                 plot_airplane_icon(ax, airport_lon, airport_lat, airplane_img)
                 airport_ident_name = f"{record['ident']} - {record['name']}"
-                ax.text(airport_lon + 0.05, airport_lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
+                ax.text(airport_lon + 0.001, airport_lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
 
 def plot_coordinates(original_coords, sorted_coords):
     parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
@@ -176,7 +181,7 @@ def plot_coordinates(original_coords, sorted_coords):
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': ccrs.PlateCarree()})
     # Remove padding around the plot
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    margin = 2.0
+    margin = 1.7
     min_lon, max_lon = min(original_lons) - margin, max(original_lons) + margin
     min_lat, max_lat = min(original_lats) - margin, max(original_lats) + margin
     ax.set_extent([min_lon, max_lon, min_lat, max_lat], crs=ccrs.PlateCarree())
@@ -207,10 +212,10 @@ def plot_coordinates(original_coords, sorted_coords):
     plot_geodesic_circle(ax, center_lon, center_lat, max_distance_nm, 'green', f'{max_distance_nm:.2f} NM Enclosing Circle')
 
     # Plot airports within bounding box
-    delta_deg = 25 * 1.852 / 110.574 + max_distance_nm # Approx conversion of NM to degrees
+    delta_deg = max_distance_nm * 1.852 / 110.574 + 5  # Approx conversion of NM to degrees
     bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")  # Ensure the airports are loaded correctly
-    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, delta_deg)
+    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_distance_nm + 25)
 
     # Display center coordinates and radius
     ax.text(center_lon, center_lat, f"Center: {decimal_degrees_to_dms(center_lat)}, {decimal_degrees_to_dms(center_lon)}\nRadius: {max_distance_nm:.2f} NM",
@@ -233,7 +238,7 @@ def show_single_coord_on_map(coord):
     # Remove padding around the plot
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
 
-    extent_margin = 2.0
+    extent_margin = .1
     ax.set_extent([lon - extent_margin, lon + extent_margin, lat - extent_margin, lat + extent_margin], crs=ccrs.PlateCarree())
 
     plot_base_map(ax, 
