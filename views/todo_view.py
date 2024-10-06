@@ -17,12 +17,14 @@ def save_tasks(tasks):
     with open(todo_file, "w") as file:
         json.dump(tasks, file)
 
-def show_todo(root, main_frame):
+def show_todo(root, main_frame, current_theme):
     # Clear the main frame
     for widget in main_frame.winfo_children():
         widget.destroy()
 
-    frame = tk.Frame(main_frame)
+    root.title("EAD OPS Tool - ToDo")
+
+    frame = tk.Frame(main_frame, bd=2, relief="groove")
     frame.pack(fill="both", expand=True)
 
     tasks = load_tasks()
@@ -32,6 +34,9 @@ def show_todo(root, main_frame):
 
     for task in tasks:
         task_listbox.insert(tk.END, task)
+        # add separator
+        task_listbox.insert(tk.END, "-" * 50)
+
 
     def add_task():
         task = task_entry.get()
@@ -49,10 +54,10 @@ def show_todo(root, main_frame):
             tasks.remove(task)
             save_tasks(tasks)
 
-    task_entry = tk.Entry(frame)
+    task_entry = tk.Entry(frame, bd=2, relief="groove")
     task_entry.pack(fill="x", padx=5, pady=5)
 
-    button_frame = tk.Frame(frame)
+    button_frame = tk.Frame(frame, bd=2, relief="groove")
     button_frame.pack(pady=5)
 
     add_button = tk.Button(button_frame, text="Add Task", command=add_task)
@@ -60,15 +65,3 @@ def show_todo(root, main_frame):
 
     remove_button = tk.Button(button_frame, text="Remove Task", command=remove_task)
     remove_button.pack(side=tk.LEFT, padx=5, pady=5)
-
-# Example usage with a Tkinter window
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("To-Do List")
-
-    main_frame = tk.Frame(root)
-    main_frame.pack(fill="both", expand=True)
-
-    show_todo(root, main_frame)
-
-    root.mainloop()

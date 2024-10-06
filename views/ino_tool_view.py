@@ -12,7 +12,7 @@ import sys
 
 CONFIG_FILE = "config.json"
 excel_file = None  # Global variable for the Excel file
-excel_data = None  # Global variable for the Excel data
+excel_data = None
 
 def prompt_for_excel_file():
     """Prompt the user to select the Excel file if it's not found or not specified."""
@@ -77,7 +77,7 @@ def get_text_without_line_numbers(text_widget):
     clean_lines = [line.partition('. ')[2] if '. ' in line else line for line in lines]
     return '\n'.join(clean_lines)
 
-def search_abbreviation(abbr_text, decoded_text, root):
+def search_abbreviation(abbr_text, decoded_text, root, current_theme):
     """Perform search and display results in a modal pop-up window."""
     try:
         results = []
@@ -102,14 +102,29 @@ def search_abbreviation(abbr_text, decoded_text, root):
         # Open a modal pop-up window
         result_popup = tk.Toplevel(root)
         result_popup.title("Search Results")
+        
+        # Set the background color for dark mode
+        result_popup.configure(bg=current_theme['bg'])
 
         # Set a minimum width for the modal window
         result_popup.geometry("900x300")  # Adjust this size if necessary to fit the results and button
 
         # Create a scrollable frame in the pop-up
-        canvas = tk.Canvas(result_popup)
+        canvas = tk.Canvas(
+            result_popup, 
+            highlightbackground=current_theme['highlightbackground'], 
+            highlightthickness=2, 
+            relief="raised",
+            bg=current_theme['bg']
+        )
         scrollbar = tk.Scrollbar(result_popup, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
+        scrollable_frame = tk.Frame(
+            canvas, 
+            highlightbackground=current_theme['highlightbackground'], 
+            highlightthickness=2, 
+            relief="raised",
+            bg=current_theme['bg']
+        )
 
         scrollable_frame.bind(
             "<Configure>",
@@ -124,21 +139,64 @@ def search_abbreviation(abbr_text, decoded_text, root):
 
         # Create result widgets inside the scrollable frame
         for i, (abbr, decoded, sheet_name) in enumerate(results):
-            create_result_widgets(scrollable_frame, i, abbr, decoded, sheet_name, root)
+            create_result_widgets(scrollable_frame, i, abbr, decoded, sheet_name, root, current_theme)
 
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred during search: {e}")
 
-def create_result_widgets(result_frame, index, abbr, decoded, sheet_name, root):
+def create_result_widgets(result_frame, index, abbr, decoded, sheet_name, root, current_theme):
     """Create and place result widgets in the result frame (now in the pop-up)."""
-    tk.Label(result_frame, text=f"Abbr: {abbr}, Decoded: {decoded}, Sheet: {sheet_name}").grid(row=2 * index, column=0, sticky="w")
 
-    copy_button = tk.Button(result_frame, text="Copy")
+    # Create a frame to hold multiple labels for better formatting
+    widget_frame = tk.Frame(result_frame, bg=current_theme['bg'])
+    widget_frame.grid(row=2 * index, column=0, sticky="w", padx=5, pady=2)
+
+    # Abbreviation Label
+    abbr_label = tk.Label(widget_frame, text=f"Abbr: {abbr}, ", bg=current_theme['bg'], fg=current_theme['fg'])
+    abbr_label.pack(side="left")
+
+    # Decoded Label
+    decoded_label = tk.Label(widget_frame, text=f"Decoded: {decoded}, ", bg=current_theme['bg'], fg=current_theme['fg'])
+    decoded_label.pack(side="left")
+
+    # Source Label (with "Source:" in bold)
+    source_label = tk.Label(widget_frame, text="Source: ", bg=current_theme['bg'], fg=current_theme['fg'], font=("TkDefaultFont", 10, "bold"))
+    source_label.pack(side="left")
+
+    # Sheet Name Label (following the "Source:" label)
+    sheet_name_label = tk.Label(widget_frame, text=sheet_name, bg=current_theme['bg'], fg=current_theme['fg'])
+    sheet_name_label.pack(side="left")
+
+    def on_copy():
+        # Copy the text to the clipboard
+        copy_to_clipboard(root, f"({decoded})", None)
+        # Close the pop-up window
+        result_frame.winfo_toplevel().destroy()
+
+    copy_button = tk.Button(
+        result_frame, 
+        text="Copy",
+        command=on_copy,
+        bg=current_theme['button_bg'],
+        fg=current_theme['fg']
+    )
     copy_button.grid(row=2 * index, column=1, padx=5)
-    copy_button.config(command=lambda: copy_to_clipboard(root, f"({decoded})", copy_button))
 
-    # Separator
-    tk.Frame(result_frame, height=1, width=800).grid(row=2 * index + 1, column=0, columnspan=2, pady=5)
+
+    def on_copy():
+        # Copy the text to the clipboard
+        copy_to_clipboard(root, f"({decoded})", None)
+        # Close the pop-up window
+        result_frame.winfo_toplevel().destroy()
+
+    copy_button = tk.Button(
+        result_frame, 
+        text="Copy",
+        command=on_copy,
+        bg=current_theme['button_bg'],
+        fg=current_theme['fg']
+    )
+    copy_button.grid(row=2 * index, column=1, padx=5)
 
 # Flight level calculation
 def calculate_flight_level(nof_entry, uom_var, height_entry, result_entry, root):
@@ -283,6 +341,7 @@ def bind_paste_shortcuts(root, paste_and_add_line_numbers):
 
 def show_ino_tool(root, main_frame, current_theme):
     global excel_file, excel_data
+    root.title("EAD OPS Tool - INO OPS Tool")
 
     # Clear the main frame
     for widget in main_frame.winfo_children():
@@ -303,12 +362,14 @@ def show_ino_tool(root, main_frame, current_theme):
     frame = tk.Frame(main_frame, cursor="cross")
     frame.grid(sticky="nsew", padx=5, pady=5)
 
+   
+
     # Configure grid weights for responsiveness
     frame.grid_rowconfigure(0, weight=1)
     frame.grid_columnconfigure(0, weight=1)
 
     # Input frame for paste buttons and text area
-    input_frame = tk.Frame(frame)
+    input_frame = tk.Frame(frame, bd=2, relief="raised")
     input_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
     input_frame.grid_columnconfigure(0, weight=1)  # Allow input frame to expand
 
@@ -317,7 +378,7 @@ def show_ino_tool(root, main_frame, current_theme):
     source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 
     # Column 2: Original and Sorted canvases
-    column_two_frame = tk.Frame(frame)
+    column_two_frame = tk.Frame(frame, highlightbackground=current_theme['highlightbackground'], highlightthickness=2, relief="raised")
     column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
     column_two_frame.grid_rowconfigure(0, weight=1)
     column_two_frame.grid_columnconfigure(0, weight=1)
@@ -366,35 +427,35 @@ def show_ino_tool(root, main_frame, current_theme):
                                   bg=current_theme['button_bg'], fg=current_theme['fg'])
     paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
-    # Text area for input
-    source_text = tk.Text(input_frame, height=15, width=30)
-    source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+    # # Text area for input
+    # source_text = tk.Text(input_frame, height=15, width=30)
+    # source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 
     # Function to update the coordinate count label
-    def update_coord_count(event=None):
-        """Update the coordinate count in the original_label."""
-        original_text.edit_modified(False)  # Reset the modified flag
-        text = original_text.get("1.0", tk.END).strip()
-        if text:
-            num_coords = len(text.split('\n'))
-        else:
-            num_coords = 0
-        original_label.config(text=f"Original COORDs: {num_coords}")
+    # def update_coord_count(event=None):
+    #     """Update the coordinate count in the original_label."""
+    #     original_text.edit_modified(False)  # Reset the modified flag
+    #     text = original_text.get("1.0", tk.END).strip()
+    #     if text:
+    #         num_coords = len(text.split('\n'))
+    #     else:
+    #         num_coords = 0
+    #     original_label.config(text=f"Original COORDs: {num_coords}")
 
     # Function to paste and add line numbers
-    def paste_and_add_line_numbers():
-        paste_from_clipboard(
-            root,
-            source_text,
-            original_text=original_text,
-            sorted_text=sorted_text,
-            original_canvas=original_canvas,
-            sorted_canvas=sorted_canvas,
-            current_theme=current_theme  # Pass current_theme here
-        )
-        add_line_numbers_to_text_widget(original_text)
-        add_line_numbers_to_text_widget(sorted_text)
-        update_coord_count()
+    # def paste_and_add_line_numbers():
+    #     paste_from_clipboard(
+    #         root,
+    #         source_text,
+    #         original_text=original_text,
+    #         sorted_text=sorted_text,
+    #         original_canvas=original_canvas,
+    #         sorted_canvas=sorted_canvas,
+    #         current_theme=current_theme  # Pass current_theme here
+    #     )
+    #     add_line_numbers_to_text_widget(original_text)
+    #     add_line_numbers_to_text_widget(sorted_text)
+    #     update_coord_count()
 
     # Paste COORD button
     paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers)
@@ -405,7 +466,7 @@ def show_ino_tool(root, main_frame, current_theme):
     paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
     # Conversion frame for calculations and results
-    conversion_frame = tk.Frame(frame)
+    conversion_frame = tk.Frame(frame, bd=2, relief="raised")
     conversion_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
     conversion_frame.grid_columnconfigure(1, weight=1)
 
@@ -480,7 +541,7 @@ def show_ino_tool(root, main_frame, current_theme):
     nof_entry.grid(row=2, column=1, padx=5, pady=5)
 
     tk.Label(conversion_frame, text="Height").grid(row=2, column=2, padx=5, pady=5, sticky="e")
-    height_entry = tk.Entry(conversion_frame, width=10, bg="black", fg="white", insertbackground="white")
+    height_entry = tk.Entry(conversion_frame, width=10)
     height_entry.grid(row=2, column=3, padx=5, pady=5)
 
     tk.Label(conversion_frame, text="UOM").grid(row=3, column=0, padx=5, pady=5)
@@ -497,7 +558,7 @@ def show_ino_tool(root, main_frame, current_theme):
     result_entry.grid(row=5, column=1, padx=5, pady=5, columnspan=2)
 
     # Template frame
-    template_frame = tk.Frame(frame)
+    template_frame = tk.Frame(frame, bd=2, relief="raised")
     template_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
     template_frame.grid_columnconfigure(1, weight=1)
 
@@ -530,13 +591,13 @@ def show_ino_tool(root, main_frame, current_theme):
     copy_template3_button.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
    # Abbreviation search frame
-    abbreviation_frame = tk.Frame(frame)
+    abbreviation_frame = tk.Frame(frame, bd=2, relief="raised")
     abbreviation_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
     
     abbr_entry = create_entry_with_label(abbreviation_frame, "Abbr.", 20, 0, 0)
     decoded_entry = create_entry_with_label(abbreviation_frame, "Decoded", 20, 1, 0)
 
-    search_button = tk.Button(abbreviation_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), root))
+    search_button = tk.Button(abbreviation_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), root, current_theme))
     search_button.grid(row=2, column=0, columnspan=2, pady=5)
 
     # Abbreviation result frame
@@ -544,7 +605,7 @@ def show_ino_tool(root, main_frame, current_theme):
     # result_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
 
      # Column 1: Show on map, original/sorted text, and copy buttons
-    column_one_frame = tk.Frame(frame)
+    column_one_frame = tk.Frame(frame, bd=2, relief="raised")
     column_one_frame.grid(row=0, column=1, rowspan=4, padx=5, pady=5, sticky="new")
     column_one_frame.grid_rowconfigure(0, weight=1)
     column_one_frame.grid_columnconfigure(0, weight=1)
@@ -593,7 +654,7 @@ def show_ino_tool(root, main_frame, current_theme):
     sorted_copy_button.grid(row=6, column=0, padx=5, pady=5)
 
     # Column 2: Oroginal and Sorted canvases
-    column_two_frame = tk.Frame(frame)
+    column_two_frame = tk.Frame(frame, bd=2, relief="raised")
     column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
     column_two_frame.grid_rowconfigure(0, weight=1)
     column_two_frame.grid_columnconfigure(0, weight=1)
@@ -609,14 +670,3 @@ def show_ino_tool(root, main_frame, current_theme):
 
     # Bind Ctrl+P or Ctrl+Shift+P to paste_from_clipboard
     bind_paste_shortcuts(root, paste_and_add_line_numbers)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("INO Tool")
-
-    main_frame = tk.Frame(root)
-    main_frame.pack(fill="both", expand=True)
-
-    show_ino_tool(root, main_frame)
-
-    root.mainloop()

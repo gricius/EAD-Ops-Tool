@@ -1,10 +1,12 @@
 # views/home_view.py
 import tkinter as tk
 
-def show_home(root, main_frame):
+def show_home(root, main_frame, current_theme):
     # Clear the main frame
     for widget in main_frame.winfo_children():
         widget.destroy()
+
+    root.title("EAD OPS Tool")
 
     frame = tk.Frame(main_frame)
     frame.pack(fill="both", expand=True)

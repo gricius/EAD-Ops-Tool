@@ -6,6 +6,9 @@ import json
 from functools import partial
 from utils.button_utils import copy_to_clipboard
 
+# Import set_theme and any necessary theme definitions
+from utils.theme_utils import set_theme
+
 TEMPLATES_DIR = "templates"
 ORDER_FILE = "templates_order.json"
 
@@ -22,12 +25,14 @@ def save_template_order(order):
     with open(ORDER_FILE, "w") as file:
         json.dump(order, file)
 
-def show_templates(root, main_frame):
+def show_templates(root, main_frame, current_theme):
     # Clear the main frame
     for widget in main_frame.winfo_children():
         widget.destroy()
 
-    frame = tk.Frame(main_frame)
+    root.title("EAD OPS Tool - Templates")
+
+    frame = tk.Frame(main_frame, bd=2, relief="groove")
     frame.pack(fill="both", expand=True)
 
     def open_editor(template_name=None):
@@ -50,7 +55,7 @@ def show_templates(root, main_frame):
                     json.dump(template, file)
                 messagebox.showinfo("Success", f"Template '{name}' saved successfully.")
                 editor_window.destroy()
-                show_templates(root, main_frame)
+                show_templates(root, main_frame, current_theme)
 
         def cancel_editor():
             editor_window.destroy()
@@ -60,6 +65,9 @@ def show_templates(root, main_frame):
 
         cancel_button = tk.Button(editor_window, text="Cancel", command=cancel_editor)
         cancel_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+        # Apply theme to editor window
+        set_theme(editor_window, current_theme)
 
     def copy_template(template_name, button):
         with open(os.path.join(TEMPLATES_DIR, f"{template_name}.json"), "r") as file:
@@ -76,7 +84,7 @@ def show_templates(root, main_frame):
             order.remove(template_name)
             save_template_order(order)
             messagebox.showinfo("Deleted", f"Template '{template_name}' deleted successfully.")
-            show_templates(root, main_frame)
+            show_templates(root, main_frame, current_theme)
 
     def move_template_up(template_name):
         order = load_template_order()
@@ -84,7 +92,7 @@ def show_templates(root, main_frame):
         if idx > 0:
             order[idx], order[idx - 1] = order[idx - 1], order[idx]
             save_template_order(order)
-            show_templates(root, main_frame)
+            show_templates(root, main_frame, current_theme)
 
     def move_template_down(template_name):
         order = load_template_order()
@@ -92,12 +100,12 @@ def show_templates(root, main_frame):
         if idx < len(order) - 1:
             order[idx], order[idx + 1] = order[idx + 1], order[idx]
             save_template_order(order)
-            show_templates(root, main_frame)
+            show_templates(root, main_frame, current_theme)
 
     new_template_button = tk.Button(frame, text="New template", command=lambda: open_editor())
     new_template_button.pack(pady=10)
 
-    templates_list = tk.Frame(frame)
+    templates_list = tk.Frame(frame, bd=2, relief="raised")
     templates_list.pack(fill="both", expand=True, padx=10, pady=10)
 
     templates = [f.split(".")[0] for f in os.listdir(TEMPLATES_DIR) if f.endswith(".json")]
@@ -114,7 +122,7 @@ def show_templates(root, main_frame):
 
     for template in order:
         if template in templates:
-            template_frame = tk.Frame(templates_list)
+            template_frame = tk.Frame(templates_list, bd=2, relief="raised")
             template_frame.pack(fill="x", pady=5)
 
             template_label = tk.Label(template_frame, text=template, anchor="w")
@@ -136,17 +144,14 @@ def show_templates(root, main_frame):
             down_button = tk.Button(template_frame, text="Down", command=partial(move_template_down, template))
             down_button.pack(side=tk.LEFT, padx=5)
 
-            separator = tk.Frame(templates_list, height=1, bg="gray")
-            separator.pack(fill="x", padx=10, pady=5)
+            # separator = tk.Frame(
+            #     templates_list,
+            #     height=2,  
+            #     bd=1,      
+            #     relief="sunken",
+            #     bg=current_theme['separator_bg']
+            # )
+            # separator.pack(fill="x", padx=10, pady=5)
 
-# Example usage with a Tkinter window
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Templates")
-
-    main_frame = tk.Frame(root)
-    main_frame.pack(fill="both", expand=True)
-
-    show_templates(root, main_frame)
-
-    root.mainloop()
+    # Apply theme to the frame
+    set_theme(frame, current_theme)
