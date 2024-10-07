@@ -1,6 +1,8 @@
 # utils/coordinate_utils.py
 import re
 from tkinter import messagebox
+import math
+from math import atan2
 
 def extract_coordinates(text):
     """
@@ -137,16 +139,33 @@ def convert_to_decimal(match):
         messagebox.showwarning('Warning', f'Coordinate conversion error: {e}')
         return None, None
 
+import math
+
+from math import atan2
+
 def sort_coordinates(coords):
     """
-    Sorts coordinates to avoid intersections in the polygon.
+    Sorts coordinates to form a simple polygon without intersections.
     """
+    # Parse the coordinates
     parsed_coords = [parse_coordinate(coord) for coord in coords]
     parsed_coords = [coord for coord in parsed_coords if coord != (None, None)]
-    hull_points = convex_hull(parsed_coords)
-    sorted_coords = [coords[parsed_coords.index(point)] for point in hull_points]
+
+    # Calculate the centroid
+    centroid = (
+        sum(point[0] for point in parsed_coords) / len(parsed_coords),
+        sum(point[1] for point in parsed_coords) / len(parsed_coords)
+    )
+
+    # Sort points by polar angle with respect to the centroid
+    sorted_points = sorted(parsed_coords, key=lambda point: atan2(point[1] - centroid[1], point[0] - centroid[0]))
+
+    # Map back to the original coordinates format
+    sorted_coords = [coords[parsed_coords.index(point)] for point in sorted_points]
+
     return sorted_coords
 
+# Existing convex hull function to compute the convex boundary for reference
 def convex_hull(points):
     """
     Computes the convex hull of a set of 2D points.
@@ -170,6 +189,9 @@ def convex_hull(points):
         upper.append(p)
 
     return lower[:-1] + upper[:-1]
+
+
+
 
 def trim_coordinates(coords):
     trimmed_coords = []
