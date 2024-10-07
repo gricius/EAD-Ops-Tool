@@ -555,8 +555,8 @@ def show_ino_tool(root, main_frame, current_theme):
 
     tk.Label(conversion_frame, text="UOM").grid(row=3, column=0, padx=5, pady=5)
     uom_var = tk.StringVar(value="M")
-    tk.Radiobutton(conversion_frame, text="M", variable=uom_var, value="M").grid(row=3, column=1, padx=5, sticky="w")
-    tk.Radiobutton(conversion_frame, text="FT", variable=uom_var, value="FT").grid(row=3, column=2, padx=5, sticky="w")
+    tk.Radiobutton(conversion_frame, text="M", variable=uom_var, value="M", selectcolor=current_theme['highlightbackground']).grid(row=3, column=1, padx=5, sticky="w")
+    tk.Radiobutton(conversion_frame, text="FT", variable=uom_var, value="FT", selectcolor=current_theme['highlightbackground']).grid(row=3, column=2, padx=5, sticky="w")
 
     calculate_button = tk.Button(conversion_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, result_entry, root))
     calculate_button.grid(row=4, column=0, columnspan=2, pady=5, sticky="ew")

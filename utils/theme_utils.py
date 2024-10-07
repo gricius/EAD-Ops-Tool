@@ -15,7 +15,7 @@ DAY_THEME = {
     'point_fill_color': 'blue',
     'line_color': 'blue',
     'text_color': 'black',
-    'highlightbackground': 'lightgrey'
+    'highlightbackground': 'lightgrey',
 }
 
 NIGHT_THEME = {
@@ -31,7 +31,7 @@ NIGHT_THEME = {
     'point_fill_color': 'cyan',
     'line_color': 'cyan',
     'text_color': 'white',
-    'highlightbackground': 'darkgrey'
+    'highlightbackground': 'black',
 }
 
 def set_theme(widget, theme):
