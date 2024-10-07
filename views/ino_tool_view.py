@@ -353,6 +353,8 @@ def show_ino_tool(root, main_frame, current_theme):
 
     if not excel_file or not os.path.exists(excel_file):
         excel_file = prompt_for_excel_file()  # Ask for the file if not found
+        config["excel_file_path"] = excel_file
+        save_config(config)
 
     excel_data = load_excel_data(excel_file)  # Load the Excel data
     if excel_data is None:
@@ -368,6 +370,10 @@ def show_ino_tool(root, main_frame, current_theme):
     frame.grid_rowconfigure(0, weight=1)
     frame.grid_columnconfigure(0, weight=1)
 
+    # Function to clear source_text on click
+    def clear_text(event):
+        source_text.delete("1.0", tk.END)
+
     # Input frame for paste buttons and text area
     input_frame = tk.Frame(frame, bd=2, relief="raised")
     input_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
@@ -376,6 +382,9 @@ def show_ino_tool(root, main_frame, current_theme):
     # Text area for input
     source_text = tk.Text(input_frame, height=15, width=30)
     source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+
+    # Bind left mouse click to clear the text area
+    source_text.bind("<Button-1>", clear_text)
 
     # Column 2: Original and Sorted canvases
     column_two_frame = tk.Frame(frame, highlightbackground=current_theme['highlightbackground'], highlightthickness=2, relief="raised")
