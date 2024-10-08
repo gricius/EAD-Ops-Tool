@@ -21,6 +21,7 @@ from cartopy.geodesic import Geodesic
 import warnings
 import pyogrio
 from osgeo import gdal
+import mplcursors
 
 def set_gdal_data_path():
     """Set the GDAL data path based on whether the script is running from PyInstaller or development."""
@@ -59,10 +60,10 @@ def get_resource_path(relative_path):
 # airplane_img = plt.imread(get_resource_path('assets/images/transparent_purple_plane_v1.png'))
 
 
-def plot_airplane_icon(ax, lon, lat, image, zoom=0.05):
-    imagebox = OffsetImage(image, zoom=zoom)
-    ab = AnnotationBbox(imagebox, (lon, lat), frameon=False, transform=ccrs.PlateCarree())
-    ax.add_artist(ab)
+# def plot_airplane_icon(ax, lon, lat, image, zoom=0.05):
+#     imagebox = OffsetImage(image, zoom=zoom)
+#     ab = AnnotationBbox(imagebox, (lon, lat), frameon=False, transform=ccrs.PlateCarree())
+#     ax.add_artist(ab)
 
 def load_shapefile(relative_path, target_crs="EPSG:4326"):
     """
@@ -157,6 +158,10 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
     # Filter airports by bounding box
     airports_within_bbox = airports_gdf.loc[airports_gdf.sindex.intersection(bounding_box.bounds)]
     
+    # Prepare lists to store the plotted markers and their corresponding labels
+    markers = []
+    labels = []
+
     for _, record in airports_within_bbox.iterrows():
         airport_geometry = record.geometry
         if isinstance(airport_geometry, Point):
@@ -167,10 +172,19 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
             
             # Plot only the airports within the max_distance_nm
             if distance_nm <= max_distance_nm:
-                # plot_airplane_icon(ax, airport_lon, airport_lat, airplane_img)
+                # Plot the airport marker
+                marker, = ax.plot(airport_lon, airport_lat, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic())
+                markers.append(marker)
+                
+                # Store the airport label for the tooltip
                 airport_ident_name = f"{record['ident']} - {record['name']}"
-                ax.text(airport_lon, airport_lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
-                ax.marker = ax.plot(airport_lon, airport_lat, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic())
+                labels.append(airport_ident_name)
+
+    # Use mplcursors to add hover annotations
+    cursor = mplcursors.cursor(markers, hover=True)
+    @cursor.connect("add")
+    def on_add(sel):
+        sel.annotation.set_text(labels[markers.index(sel.artist)])
 
 def plot_coordinates(original_coords, sorted_coords):
     parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
