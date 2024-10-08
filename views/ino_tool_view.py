@@ -9,6 +9,7 @@ import pandas as pd
 import json
 import os
 import sys
+import math
 
 CONFIG_FILE = "config.json"
 excel_file = None  # Global variable for the Excel file
@@ -79,6 +80,134 @@ def get_text_without_line_numbers(text_widget):
     lines = text.split('\n')
     clean_lines = [line.partition('. ')[2] if '. ' in line else line for line in lines]
     return '\n'.join(clean_lines)
+def calculate_new_coordinate(start_coord, radial, distance_nm, result_entry):
+    # Earth's radius in nautical miles
+    EARTH_RADIUS_NM = 3440.065
+
+    # Helper function to parse coordinate string
+    def parse_coord(coord_str):
+        # Find indices of hemisphere indicators
+        lat_hemi_idx = max(coord_str.find('N'), coord_str.find('S'))
+        lon_hemi_idx = max(coord_str.find('E'), coord_str.find('W'))
+
+        if lat_hemi_idx == -1 or lon_hemi_idx == -1:
+            raise ValueError("Invalid coordinate format.")
+
+        # Extract latitude and longitude strings
+        lat_str = coord_str[:lat_hemi_idx]
+        lat_hemi = coord_str[lat_hemi_idx]
+        lon_str = coord_str[lat_hemi_idx+1:lon_hemi_idx]
+        lon_hemi = coord_str[lon_hemi_idx]
+
+        # Parse latitude
+        if len(lat_str) == 4:  # DDMM
+            lat_deg = int(lat_str[:2])
+            lat_min = int(lat_str[2:])
+            lat_sec = 0
+        elif len(lat_str) == 6:  # DDMMSS
+            lat_deg = int(lat_str[:2])
+            lat_min = int(lat_str[2:4])
+            lat_sec = int(lat_str[4:])
+        else:
+            raise ValueError("Invalid latitude format.")
+
+        # Parse longitude
+        if len(lon_str) == 5:  # DDDMM
+            lon_deg = int(lon_str[:3])
+            lon_min = int(lon_str[3:])
+            lon_sec = 0
+        elif len(lon_str) == 7:  # DDDMMSS
+            lon_deg = int(lon_str[:3])
+            lon_min = int(lon_str[3:5])
+            lon_sec = int(lon_str[5:])
+        else:
+            raise ValueError("Invalid longitude format.")
+
+        # Convert to decimal degrees
+        lat = lat_deg + lat_min / 60 + lat_sec / 3600
+        lon = lon_deg + lon_min / 60 + lon_sec / 3600
+
+        # Apply hemisphere
+        if lat_hemi == 'S':
+            lat = -lat
+        if lon_hemi == 'W':
+            lon = -lon
+
+        return lat, lon
+
+    # Convert degrees to radians
+    def deg_to_rad(degrees):
+        return degrees * math.pi / 180
+
+    # Convert radians to degrees
+    def rad_to_deg(radians):
+        return radians * 180 / math.pi
+
+    # Parse the starting coordinate
+    lat1_deg, lon1_deg = parse_coord(start_coord)
+    lat1_rad = deg_to_rad(lat1_deg)
+    lon1_rad = deg_to_rad(lon1_deg)
+
+    # Convert radial and distance
+    bearing_rad = deg_to_rad(radial % 360)
+    angular_distance = distance_nm / EARTH_RADIUS_NM
+
+    # Calculate the new latitude
+    lat2_rad = math.asin(
+        math.sin(lat1_rad) * math.cos(angular_distance) +
+        math.cos(lat1_rad) * math.sin(angular_distance) * math.cos(bearing_rad)
+    )
+
+    # Calculate the new longitude
+    lon2_rad = lon1_rad + math.atan2(
+        math.sin(bearing_rad) * math.sin(angular_distance) * math.cos(lat1_rad),
+        math.cos(angular_distance) - math.sin(lat1_rad) * math.sin(lat2_rad)
+    )
+
+    # Normalize longitude to be between -180 and 180 degrees
+    lon2_rad = (lon2_rad + 3 * math.pi) % (2 * math.pi) - math.pi
+
+    # Convert back to degrees
+    lat2_deg = rad_to_deg(lat2_rad)
+    lon2_deg = rad_to_deg(lon2_rad)
+
+    # Determine hemispheres
+    lat_hemi = 'N' if lat2_deg >= 0 else 'S'
+    lon_hemi = 'E' if lon2_deg >= 0 else 'W'
+
+    # Convert to absolute values
+    lat2_deg = abs(lat2_deg)
+    lon2_deg = abs(lon2_deg)
+
+    # Extract degrees and minutes
+    lat_deg_int = int(lat2_deg)
+    lat_min_float = (lat2_deg - lat_deg_int) * 60
+    lat_min_int = int(round(lat_min_float))
+
+    lon_deg_int = int(lon2_deg)
+    lon_min_float = (lon2_deg - lon_deg_int) * 60
+    lon_min_int = int(round(lon_min_float))
+
+    # Handle rounding that could push minutes to 60
+    if lat_min_int == 60:
+        lat_min_int = 0
+        lat_deg_int += 1
+
+    if lon_min_int == 60:
+        lon_min_int = 0
+        lon_deg_int += 1
+
+    # Format the new coordinate
+    lat_deg_str = f"{lat_deg_int:02d}"
+    lat_min_str = f"{lat_min_int:02d}"
+    lon_deg_str = f"{lon_deg_int:03d}"
+    lon_min_str = f"{lon_min_int:02d}"
+
+    new_coord = f"{lat_deg_str}{lat_min_str}{lat_hemi}{lon_deg_str}{lon_min_str}{lon_hemi}"
+    result_entry.delete(0, tk.END)  
+    result_entry.insert(0, new_coord)  
+    # print(new_coord)
+    return new_coord
 
 def search_abbreviation(abbr_text, decoded_text, root, current_theme):
     """Perform search and display results in a modal pop-up window."""
@@ -634,13 +763,61 @@ def show_ino_tool(root, main_frame, current_theme):
     sorted_copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(
         root, get_text_without_line_numbers(sorted_text), sorted_copy_button
     ))
-    sorted_copy_button.grid(row=6, column=0, padx=5, pady=5)
+    sorted_copy_button.grid(row=6, column=0, padx=5, pady=5, sticky="w")
 
     # Extreme coordinates Copy button for var extremities_text
-    extremities_copy_button = tk.Button(column_one_frame, text="Copy Extremes", command=lambda: copy_to_clipboard(
+    extremities_copy_button = tk.Button(column_one_frame, text="Copy Extremities", command=lambda: copy_to_clipboard(
     root, extremities_str, extremities_copy_button
     ))
-    extremities_copy_button.grid(row=7, column=0, padx=5, pady=5)
+    extremities_copy_button.grid(row=6, column=0, padx=5, pady=5, sticky="e")
+
+    # new coordinate calculation 
+    # labael start_coord
+    start_coord_label = tk.Label(column_one_frame, text="Start Coord", bg=current_theme['bg'], fg=current_theme['fg'])
+    start_coord_label.grid(row=8, column=0, padx=5, pady=5, sticky="w")
+
+    # Entry for start_coord
+    start_coord_entry = tk.Entry(column_one_frame, width=16)
+    start_coord_entry.grid(row=8, column=0, padx=5, pady=5, sticky="e")
+
+    # Label radial
+    # Create a frame to hold both labels and entries
+    radial_distance_frame = tk.Frame(column_one_frame, bg=current_theme['bg'])
+    radial_distance_frame.grid(row=10, column=0, padx=5, pady=5, sticky="w")
+
+    # Radial Label and Entry
+    radial_label = tk.Label(radial_distance_frame, text="RAD", bg=current_theme['bg'], fg=current_theme['fg'])
+    radial_label.pack(side="left")
+    radial_entry = tk.Entry(radial_distance_frame, width=5)
+    radial_entry.pack(side="left", padx=(0, 10))  
+
+    # Distance Label and Entry
+    distance_label = tk.Label(radial_distance_frame, text="Dist.(NM)", bg=current_theme['bg'], fg=current_theme['fg'])
+    distance_label.pack(side="left")
+    distance_entry = tk.Entry(radial_distance_frame, width=5)
+    distance_entry.pack(side="left")
+
+
+    # Calculate new coordinate button
+    calculate_new_coord_button = tk.Button(
+    column_one_frame,
+    text="Calculate New COORD",
+    command=lambda: calculate_new_coordinate(
+            start_coord_entry.get(),
+            int(radial_entry.get()),
+            int(distance_entry.get()),
+            result_entry
+        )
+    )
+    calculate_new_coord_button.grid(row=11, column=0, padx=5, pady=5, sticky="ew")
+
+    # result label
+    result_label = tk.Label(column_one_frame, text="Result", bg=current_theme['bg'], fg=current_theme['fg'])
+    result_label.grid(row=12, column=0, padx=5, pady=5, sticky="w")
+
+    # Entry for result
+    result_entry = tk.Entry(column_one_frame, width=12)
+    result_entry.grid(row=12, column=0, padx=5, pady=5, sticky="e")
 
 
     # Column 2: Oroginal and Sorted canvases
