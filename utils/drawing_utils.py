@@ -56,7 +56,7 @@ def get_resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-airplane_img = plt.imread(get_resource_path('assets/images/transparent_purple_plane_v1.png'))
+# airplane_img = plt.imread(get_resource_path('assets/images/transparent_purple_plane_v1.png'))
 
 
 def plot_airplane_icon(ax, lon, lat, image, zoom=0.05):
@@ -168,9 +168,10 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
             
             # Plot only the airports within the max_distance_nm
             if distance_nm <= max_distance_nm:
-                plot_airplane_icon(ax, airport_lon, airport_lat, airplane_img)
+                # plot_airplane_icon(ax, airport_lon, airport_lat, airplane_img)
                 airport_ident_name = f"{record['ident']} - {record['name']}"
-                ax.text(airport_lon + 0.001, airport_lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
+                ax.text(airport_lon, airport_lat, airport_ident_name, fontsize=8, color='black', transform=ccrs.PlateCarree())
+                ax.marker = ax.plot(airport_lon, airport_lat, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic())
 
 def plot_coordinates(original_coords, sorted_coords):
     parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
