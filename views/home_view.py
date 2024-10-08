@@ -23,7 +23,7 @@ def show_home(root, main_frame, current_theme):
     news_label = tk.Label(frame, text='News, hints etc.:', font=("Arial", 12))
     news_label.pack(pady=10)
 
-    news_label = tk.Label(frame, text=f"{news_content}", justify=tk.LEFT, wraplength=600, font=("Italic", 10))
+    news_label = tk.Label(frame, text=f"{news_content}", justify=tk.LEFT, wraplength=600, font=("Italic", 10), bg=current_theme['bg'], fg=current_theme['fg'])
     news_label.pack(pady=10)
 
     # function to show the information about the application
