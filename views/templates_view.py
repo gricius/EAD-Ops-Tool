@@ -4,7 +4,7 @@ from tkinter import messagebox, simpledialog
 import os
 import json
 from functools import partial
-from utils.button_utils import copy_to_clipboard
+# from utils.button_utils import copy_to_clipboard
 
 # Import set_theme and any necessary theme definitions
 from utils.theme_utils import set_theme
@@ -24,6 +24,11 @@ def load_template_order():
 def save_template_order(order):
     with open(ORDER_FILE, "w") as file:
         json.dump(order, file)
+
+def copy_to_clipboard(root, text, button):
+    """Copies text to the clipboard and updates the button to indicate success."""
+    root.clipboard_clear()
+    root.clipboard_append(text)
 
 def show_templates(root, main_frame, current_theme):
     # Clear the main frame
