@@ -177,7 +177,7 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
                 markers.append(marker)
                 
                 # Store the airport label for the tooltip
-                airport_ident_name = f"{record['ident']} - {record['name']}"
+                airport_ident_name = f"{record['ident']} - {record['name']} \n ({decimal_degrees_to_dms(airport_lat, True)}, {decimal_degrees_to_dms(airport_lon, False)})"
                 labels.append(airport_ident_name)
 
     # Use mplcursors to add hover annotations
