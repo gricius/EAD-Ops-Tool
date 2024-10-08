@@ -139,10 +139,6 @@ def convert_to_decimal(match):
         messagebox.showwarning('Warning', f'Coordinate conversion error: {e}')
         return None, None
 
-import math
-
-from math import atan2
-
 def sort_coordinates(coords):
     """
     Sorts coordinates to form a simple polygon without intersections.
@@ -162,7 +158,7 @@ def sort_coordinates(coords):
 
     # Map back to the original coordinates format
     sorted_coords = [coords[parsed_coords.index(point)] for point in sorted_points]
-
+    # print("Sorted Coordinates:", sorted_coords)
     return sorted_coords
 
 # Existing convex hull function to compute the convex boundary for reference
@@ -190,6 +186,85 @@ def convex_hull(points):
 
     return lower[:-1] + upper[:-1]
 
+# coordinate extrimities function. to extract four corners of extreme coordinates and return as var extremities_text
+def coordinate_extremities(coords):
+    """
+    Extracts the four corners of the extreme coordinates from sorted_coords
+    and returns them as a formatted string.
+    """
+    if not coords:
+        return "No valid coordinates provided."
+    
+    # Initialize variables to store extremities
+    max_lat = None
+    min_lat = None
+    max_lon = None
+    min_lon = None
+
+    # Functions to parse latitude and longitude from coordinate string
+    def parse_lat(coord):
+        lat_deg = int(coord[0:2])
+        lat_min = int(coord[2:4])
+        lat_sec = int(coord[4:6])
+        lat_dir = coord[6]
+        # Calculate a comparable value
+        lat_value = lat_deg * 10000 + lat_min * 100 + lat_sec
+        if lat_dir == 'S':
+            lat_value = -lat_value
+        return lat_value, coord[0:7]  # Return value and original lat part
+
+    def parse_lon(coord):
+        lon_deg = int(coord[7:10])
+        lon_min = int(coord[10:12])
+        lon_sec = int(coord[12:14])
+        lon_dir = coord[14]
+        # Calculate a comparable value
+        lon_value = lon_deg * 10000 + lon_min * 100 + lon_sec
+        if lon_dir == 'W':
+            lon_value = -lon_value
+        return lon_value, coord[7:15]  # Return value and original lon part
+
+    # Dictionaries to store the extremity coordinate parts
+    lat_dict = {}
+    lon_dict = {}
+
+    # Iterate over all coordinates to find extremities
+    for coord in coords:
+        lat_value, lat_str = parse_lat(coord)
+        lon_value, lon_str = parse_lon(coord)
+
+        # Update max and min latitudes
+        if (max_lat is None) or (lat_value > max_lat):
+            max_lat = lat_value
+            max_lat_str = lat_str
+        if (min_lat is None) or (lat_value < min_lat):
+            min_lat = lat_value
+            min_lat_str = lat_str
+
+        # Update max and min longitudes
+        if (max_lon is None) or (lon_value > max_lon):
+            max_lon = lon_value
+            max_lon_str = lon_str
+        if (min_lon is None) or (lon_value < min_lon):
+            min_lon = lon_value
+            min_lon_str = lon_str
+
+    # Construct extremity coordinates
+    northwest = f"{max_lat_str}{min_lon_str}"
+    northeast = f"{max_lat_str}{max_lon_str}"
+    southwest = f"{min_lat_str}{min_lon_str}"
+    southeast = f"{min_lat_str}{max_lon_str}"
+
+    # Format the output string
+    extremities_str = (
+        f"{northwest}\n"
+        f"{northeast}\n"
+        f"{southeast}\n"
+        f"{southwest}"
+    )
+
+    return extremities_str
+
 
 
 
@@ -214,7 +289,7 @@ def trim_coordinates(coords):
 
             trimmed_coords.append(f"{lat_str}{lon_str}")
         else:
-            print(f"Invalid coordinate format: {coord}")
+            # print(f"Invalid coordinate format: {coord}")
             continue
 
     return trimmed_coords

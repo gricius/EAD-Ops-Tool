@@ -14,6 +14,9 @@ CONFIG_FILE = "config.json"
 excel_file = None  # Global variable for the Excel file
 excel_data = None
 
+# Global variable for extreme coordinates
+extremities_str = ""
+
 def prompt_for_excel_file():
     """Prompt the user to select the Excel file if it's not found or not specified."""
     file_path = filedialog.askopenfilename(
@@ -413,7 +416,8 @@ def show_ino_tool(root, main_frame, current_theme):
 
     # Function to paste and add line numbers
     def paste_and_add_line_numbers():
-        paste_from_clipboard(
+        global extremities_str
+        extremities_str = paste_from_clipboard(
             root,
             source_text,
             original_text=original_text,
@@ -435,36 +439,6 @@ def show_ino_tool(root, main_frame, current_theme):
     paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text),
                                   bg=current_theme['button_bg'], fg=current_theme['fg'])
     paste_time_button.grid(row=0, column=1, padx=5, pady=5)
-
-    # # Text area for input
-    # source_text = tk.Text(input_frame, height=15, width=30)
-    # source_text.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
-
-    # Function to update the coordinate count label
-    # def update_coord_count(event=None):
-    #     """Update the coordinate count in the original_label."""
-    #     original_text.edit_modified(False)  # Reset the modified flag
-    #     text = original_text.get("1.0", tk.END).strip()
-    #     if text:
-    #         num_coords = len(text.split('\n'))
-    #     else:
-    #         num_coords = 0
-    #     original_label.config(text=f"Original COORDs: {num_coords}")
-
-    # Function to paste and add line numbers
-    # def paste_and_add_line_numbers():
-    #     paste_from_clipboard(
-    #         root,
-    #         source_text,
-    #         original_text=original_text,
-    #         sorted_text=sorted_text,
-    #         original_canvas=original_canvas,
-    #         sorted_canvas=sorted_canvas,
-    #         current_theme=current_theme  # Pass current_theme here
-    #     )
-    #     add_line_numbers_to_text_widget(original_text)
-    #     add_line_numbers_to_text_widget(sorted_text)
-    #     update_coord_count()
 
     # Paste COORD button
     paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers)
@@ -661,6 +635,13 @@ def show_ino_tool(root, main_frame, current_theme):
         root, get_text_without_line_numbers(sorted_text), sorted_copy_button
     ))
     sorted_copy_button.grid(row=6, column=0, padx=5, pady=5)
+
+    # Extreme coordinates Copy button for var extremities_text
+    extremities_copy_button = tk.Button(column_one_frame, text="Copy Extremes", command=lambda: copy_to_clipboard(
+    root, extremities_str, extremities_copy_button
+    ))
+    extremities_copy_button.grid(row=7, column=0, padx=5, pady=5)
+
 
     # Column 2: Oroginal and Sorted canvases
     column_two_frame = tk.Frame(frame, bd=2, relief="raised")
