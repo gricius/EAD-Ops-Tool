@@ -26,7 +26,7 @@ def create_main_window():
     icon_path = get_resource_path('assets/images/ead_ops_tool_32.ico')
     root.iconbitmap(icon_path)
     root.title("EAD OPS Tool")
-    root.geometry("850x750")
+    root.geometry("810x750")
     root.attributes('-alpha', current_theme['window_alpha'])
 
     # Create a navigation bar frame
