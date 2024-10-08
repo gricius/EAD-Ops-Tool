@@ -114,7 +114,6 @@ def plot_base_map(ax, countries_gdf, disputed_areas_gdf, elevation_points_gdf, r
     - ax: The matplotlib axis on which to plot.
     - countries_gdf: Geopandas GeoDataFrame for countries.
     - disputed_areas_gdf: Geopandas GeoDataFrame for disputed areas.
-    - disputed_boundaries_gdf: Geopandas GeoDataFrame for disputed boundaries.
     - elevation_points_gdf: Geopandas GeoDataFrame for elevation points.
     - raster_path: Optional path to a GeoTIFF raster file to plot as a background.
     """
@@ -222,6 +221,28 @@ def plot_coordinates(original_coords, sorted_coords):
     ax.text(center_lon, center_lat, f"Center: {decimal_degrees_to_dms(center_lat)}, {decimal_degrees_to_dms(center_lon)}\nRadius: {max_distance_nm:.2f} NM",
             fontsize=10, color='green', transform=ccrs.PlateCarree(), ha='left')
     
+    # Add mouse scroll event handler for zooming
+    def on_scroll(event):
+        base_scale = 2.0  # Zoom factor
+        if event.button == 'up':
+            scale_factor = 1 / base_scale
+        elif event.button == 'down':
+            scale_factor = base_scale
+        else:
+            return
+
+        x0, x1, y0, y1 = ax.get_extent(crs=ccrs.PlateCarree())
+        x_center = (x0 + x1) / 2
+        y_center = (y0 + y1) / 2
+        x_width = (x1 - x0) * scale_factor / 2
+        y_height = (y1 - y0) * scale_factor / 2
+        new_extent = [x_center - x_width, x_center + x_width,
+                      y_center - y_height, y_center + y_height]
+        ax.set_extent(new_extent, crs=ccrs.PlateCarree())
+        plt.draw()
+
+    # Connect the scroll event to the handler
+    fig.canvas.mpl_connect('scroll_event', on_scroll)
 
     # Add title and legend
     plt.legend()
@@ -257,6 +278,29 @@ def show_single_coord_on_map(coord):
     bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
     plot_airports(ax, bounding_box, airports_gdf, lat, lon, 5)
+
+    # Add mouse scroll event handler for zooming
+    def on_scroll(event):
+        base_scale = 2.0  # Zoom factor
+        if event.button == 'up':
+            scale_factor = 1 / base_scale
+        elif event.button == 'down':
+            scale_factor = base_scale
+        else:
+            return
+
+        x0, x1, y0, y1 = ax.get_extent(crs=ccrs.PlateCarree())
+        x_center = (x0 + x1) / 2
+        y_center = (y0 + y1) / 2
+        x_width = (x1 - x0) * scale_factor / 2
+        y_height = (y1 - y0) * scale_factor / 2
+        new_extent = [x_center - x_width, x_center + x_width,
+                      y_center - y_height, y_center + y_height]
+        ax.set_extent(new_extent, crs=ccrs.PlateCarree())
+        plt.draw()
+
+    # Connect the scroll event to the handler
+    fig.canvas.mpl_connect('scroll_event', on_scroll)
 
     plt.title('Single Coordinate with 1 NM and 5 NM Radius Circles')
     ax.format_coord = lambda x, y: format_coord(x, y)
@@ -323,4 +367,3 @@ def draw_coordinates(coords, canvas, current_theme):
     x1, y1 = transform(lats[-1], lons[-1])
     x2, y2 = transform(lats[0], lons[0])
     canvas.create_line(x1, y1, x2, y2, fill=line_color)
-
