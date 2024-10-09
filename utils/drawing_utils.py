@@ -46,6 +46,8 @@ check_gdal_data()
 # Ensure we're using a font that can handle most glyphs
 matplotlib.rcParams['font.family'] = 'Arial'
 
+active_cursors = []
+
 def get_resource_path(relative_path):
     """ Get the absolute path to resource, works for PyInstaller and development. """
     try:
@@ -173,11 +175,24 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
             # Plot only the airports within the max_distance_nm
             if distance_nm <= max_distance_nm:
                 # Plot the airport marker
-                marker, = ax.plot(airport_lon, airport_lat, marker='o', markersize=5, linestyle='-', color='blue', transform=ccrs.Geodetic())
+                marker, = ax.plot(
+                    airport_lon,
+                    airport_lat,
+                    marker='*',
+                    markersize=6,
+                    linestyle='-',
+                    color='black',
+                    transform=ccrs.Geodetic()
+                )
                 markers.append(marker)
                 
                 # Store the airport label for the tooltip
-                airport_ident_name = f"{record['ident']} - {record['name']} \n ({decimal_degrees_to_dms(airport_lat, True)}, {decimal_degrees_to_dms(airport_lon, False)})"
+                airport_ident_name = (
+                    f"{record['ident']} - {record['name']}\n"
+                    f"({decimal_degrees_to_dms(airport_lat, True)}, "
+                    f"{decimal_degrees_to_dms(airport_lon, False)})\n"
+                    f"Type: {record['type']}\n"
+                )
                 labels.append(airport_ident_name)
 
     # Use mplcursors to add hover annotations
@@ -185,6 +200,11 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
     @cursor.connect("add")
     def on_add(sel):
         sel.annotation.set_text(labels[markers.index(sel.artist)])
+    
+    # Keep the cursor alive by attaching it to the axis object
+    ax.airports_cursor = cursor
+
+
 
 def plot_coordinates(original_coords, sorted_coords):
     parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
@@ -205,8 +225,7 @@ def plot_coordinates(original_coords, sorted_coords):
               load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
               load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
             #   load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
-              load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
-              raster_path=get_resource_path('shapes/NE1_50M_SR_W.tif')
+              load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp')
                 )
 
 
@@ -258,9 +277,8 @@ def plot_coordinates(original_coords, sorted_coords):
     # Connect the scroll event to the handler
     fig.canvas.mpl_connect('scroll_event', on_scroll)
 
-    # Add title and legend
+    # Add legend
     plt.legend()
-    plt.title(f"Original and Sorted Coordinates with Minimum Enclosing Circle ({max_distance_nm:.2f} NM radius) and Airports")
     ax.format_coord = lambda x, y: format_coord(x, y)
     plt.show()
 
