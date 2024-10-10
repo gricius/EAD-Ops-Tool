@@ -23,7 +23,7 @@ def get_resource_path(relative_path):
 def create_main_window():
     root = tk.Tk()
     current_theme = NIGHT_THEME  # Start with the night theme
-    icon_path = get_resource_path('assets/images/ead_ops_tool_32.ico')
+    icon_path = get_resource_path('assets/images/ead_ops_tool_16.ico')
     root.iconbitmap(icon_path)
     root.title("EAD OPS Tool")
     root.geometry("810x750")
