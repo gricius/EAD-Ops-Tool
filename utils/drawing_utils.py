@@ -7,6 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import cartopy.crs as ccrs
+from cartopy.crs import Geodetic
 from cartopy.crs import Globe
 # from cartopy.io.shapereader import Reader
 # from cartopy.feature import ShapelyFeature
@@ -18,6 +19,7 @@ import sys
 import os
 from utils.coordinate_utils import parse_coordinate
 from geopy.distance import great_circle  
+from geopy.distance import geodesic
 # from cartopy.geodesic import Geodesic
 import warnings
 # import pyogrio
@@ -26,6 +28,8 @@ import mplcursors
 import random
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
+from shapely.geometry import MultiPoint
+from scipy.spatial import ConvexHull
 
 def set_gdal_data_path():
     """Set the GDAL data path based on whether the script is running from PyInstaller or development."""
@@ -74,40 +78,39 @@ plate_carree_spherical = ccrs.PlateCarree(globe=spherical_globe)
 
 def minimal_enclosing_circle(points):
     """
-    Computes the minimal enclosing circle using Welzl's algorithm.
+    Computes the minimal enclosing circle using Welzl's algorithm with Euclidean distances.
     :param points: List of tuples [(lat1, lon1), (lat2, lon2), ...]
     :return: (center_lat, center_lon, radius_nm)
     """
-    def distance(p1, p2):
-        return great_circle(p1, p2).nautical
+    import math
+    import random
+    from geopy.distance import geodesic
 
-    def is_in_circle(p, c):
-        return distance(p, (c[0], c[1])) <= c[2] + 1e-6  # small epsilon
+    def distance_euclidean(p1, p2):
+        return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
-    def circle_from_two_points(p1, p2):
-        center_lat = (p1[0] + p2[0]) / 2
-        center_lon = (p1[1] + p2[1]) / 2
-        radius = distance(p1, (center_lat, center_lon))
-        return (center_lat, center_lon, radius)
+    def circle_two_points(p1, p2):
+        center = ((p1[0] + p2[0])/2, (p1[1] + p2[1])/2)
+        radius = distance_euclidean(p1, center)
+        return (center[0], center[1], radius)
 
-    def circle_from_three_points(p1, p2, p3):
-        # Using circumcircle formula
-        A = np.array([
-            [p2[1] - p1[1], p2[0] - p1[0]],
-            [p3[1] - p1[1], p3[0] - p1[0]]
-        ])
-        B = np.array([
-            ((p2[1]**2 - p1[1]**2) + (p2[0]**2 - p1[0]**2)) / 2,
-            ((p3[1]**2 - p1[1]**2) + (p3[0]**2 - p1[0]**2)) / 2
-        ])
-        try:
-            sol = np.linalg.solve(A, B)
-            center_lat, center_lon = sol
-            radius = distance(p1, (center_lat, center_lon))
-            return (center_lat, center_lon, radius)
-        except np.linalg.LinAlgError:
-            # Points are colinear
-            return None
+    def circle_three_points(p1, p2, p3):
+        A = p2[0] - p1[0]
+        B = p2[1] - p1[1]
+        C = p3[0] - p1[0]
+        D = p3[1] - p1[1]
+        E = A*(p1[0] + p2[0]) + B*(p1[1] + p2[1])
+        F = C*(p1[0] + p3[0]) + D*(p1[1] + p3[1])
+        G = 2*(A*(p3[1] - p2[1]) - B*(p3[0] - p2[0]))
+        if G == 0:
+            return None  # Points are collinear
+        center_x = (D*E - B*F) / G
+        center_y = (A*F - C*E) / G
+        radius = distance_euclidean(p1, (center_x, center_y))
+        return (center_x, center_y, radius)
+
+    def is_inside(p, c):
+        return distance_euclidean(p, (c[0], c[1])) <= c[2] + 1e-8
 
     def welzl(P, R, n):
         if n == 0 or len(R) == 3:
@@ -116,30 +119,56 @@ def minimal_enclosing_circle(points):
             elif len(R) == 1:
                 return (R[0][0], R[0][1], 0)
             elif len(R) == 2:
-                return circle_from_two_points(R[0], R[1])
+                return circle_two_points(R[0], R[1])
             elif len(R) == 3:
-                c = circle_from_three_points(R[0], R[1], R[2])
+                c = circle_three_points(R[0], R[1], R[2])
                 if c is not None:
                     return c
                 else:
-                    # Colinear points; return the max circle from two points
+                    # Collinear points, return the max two-point circle
                     return max([
-                        circle_from_two_points(R[0], R[1]),
-                        circle_from_two_points(R[0], R[2]),
-                        circle_from_two_points(R[1], R[2])
+                        circle_two_points(R[0], R[1]),
+                        circle_two_points(R[0], R[2]),
+                        circle_two_points(R[1], R[2])
                     ], key=lambda c: c[2])
-        p = P[n-1]
-        c = welzl(P, R, n-1)
-        if is_in_circle(p, c):
+        
+        p = P[n - 1]
+        c = welzl(P, R, n - 1)
+        if is_inside(p, c):
             return c
         else:
-            return welzl(P, R + [p], n-1)
+            return welzl(P, R + [p], n - 1)
 
-    # Shuffle the points to ensure random order for Welzl's algorithm
-    shuffled = points.copy()
-    random.shuffle(shuffled)
-    c = welzl(shuffled, [], len(shuffled))
-    return c  # (center_lat, center_lon, radius_nm)
+    # Remove duplicate points
+    P = list(set(points))
+
+    if not P:
+        return (0, 0, 0)
+
+    # Shuffle the points to ensure average-case performance
+    random.shuffle(P)
+
+    # Compute the minimal enclosing circle
+    c = welzl(P, [], len(P))
+
+    # Extract center and initial radius
+    center_lat, center_lon, _ = c
+
+    # Calculate the geodesic radius in nautical miles
+    max_dist = 0
+    for p in P:
+        try:
+            dist = geodesic((center_lat, center_lon), p).nautical
+            if dist > max_dist:
+                max_dist = dist
+        except Exception as e:
+            print(f"Error calculating geodesic distance for point {p}: {e}")
+            continue
+
+    # Debugging Statements
+    print(f"Computed Circle Center: Latitude={center_lat}, Longitude={center_lon}, Radius={max_dist} NM")
+
+    return (center_lat, center_lon, max_dist)
 
 def load_shapefile(relative_path, target_crs="EPSG:4326"):
     """
@@ -179,27 +208,22 @@ def format_coord(x, y):
     return f"Lat: {lat_dms}, Lon: {lon_dms}"
 
 def plot_great_circle_circle(ax, lon, lat, radius_nm, color, label):
-    # Number of points to generate along the circle
     n_points = 360
-    radius_deg = np.degrees(radius_nm * 1852 / 6371000)  # Convert radius from NM to degrees (approximate)
     angles = np.linspace(0, 360, n_points)
     lons = []
     lats = []
 
     for angle in angles:
         bearing = np.radians(angle)
-        lat2 = np.arcsin(
-            np.sin(np.radians(lat)) * np.cos(radius_nm / 3440.065) +
-            np.cos(np.radians(lat)) * np.sin(radius_nm / 3440.065) * np.cos(bearing)
-        )
-        lon2 = np.radians(lon) + np.arctan2(
-            np.sin(bearing) * np.sin(radius_nm / 3440.065) * np.cos(np.radians(lat)),
-            np.cos(radius_nm / 3440.065) - np.sin(np.radians(lat)) * np.sin(lat2)
-        )
-        lats.append(np.degrees(lat2))
-        lons.append(np.degrees(lon2))
+        # Convert radius_nm to meters for accurate distance calculation
+        dist_m = radius_nm * 1852  # 1 NM = 1852 meters
 
-    ax.plot(lons, lats, color=color, linestyle='--', transform=geodetic_spherical, label=label)
+        # Use geodesic from geopy for accurate lat/lon points along the circle
+        destination = geodesic(kilometers=dist_m / 1000).destination((lat, lon), np.degrees(bearing))
+        lats.append(destination.latitude)
+        lons.append(destination.longitude)
+
+    ax.plot(lons, lats, color=color, linestyle='--', transform=Geodetic(), label=label)
 
 def plot_base_map(ax, countries_gdf, disputed_areas_gdf, elevation_points_gdf):
     # Plot countries
@@ -233,7 +257,6 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
     # Filter airports by bounding box
     airports_within_bbox = airports_gdf.loc[airports_gdf.sindex.intersection(bounding_box.bounds)]
     
-    # Prepare lists to store the plotted markers and their corresponding labels
     markers = []
     labels = []
 
@@ -243,11 +266,10 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
             airport_lon, airport_lat = airport_geometry.x, airport_geometry.y
             
             # Calculate the distance in NM between the center and each airport
-            distance_nm = great_circle((center_lat, center_lon), (airport_lat, airport_lon)).nautical
+            distance_nm = geodesic((center_lat, center_lon), (airport_lat, airport_lon)).nautical
             
             # Plot only the airports within the max_distance_nm
             if distance_nm <= max_distance_nm:
-                # Plot the airport marker
                 marker, = ax.plot(
                     airport_lon,
                     airport_lat,
@@ -255,7 +277,7 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
                     markersize=6,
                     linestyle='-',
                     color='black',
-                    transform=geodetic_spherical  # Use the spherical transform
+                    transform=Geodetic()  # Use the Geodetic transform for spherical plotting
                 )
                 markers.append(marker)
                 
@@ -268,16 +290,37 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
                 )
                 labels.append(airport_ident_name)
 
-    # Use mplcursors to add hover annotations
     cursor = mplcursors.cursor(markers, hover=True)
     @cursor.connect("add")
     def on_add(sel):
         sel.annotation.set_text(labels[markers.index(sel.artist)])
+
+    ax.airports_cursor = cursor  # Attach cursor to the axis object
+
+def on_scroll(event):
+    """
+    Handles zooming in and out of the plot on scroll.
+    """
+    base_scale = 2.0  # Zoom factor
+    if event.button == 'up':
+        scale_factor = 1 / base_scale
+    elif event.button == 'down':
+        scale_factor = base_scale
+    else:
+        return
+
+    # Get the current extent
+    x0, x1, y0, y1 = event.inaxes.get_extent(crs=plate_carree_spherical)
+    x_center = (x0 + x1) / 2
+    y_center = (y0 + y1) / 2
+    x_width = (x1 - x0) * scale_factor / 2
+    y_height = (y1 - y0) * scale_factor / 2
+    new_extent = [x_center - x_width, x_center + x_width,
+                  y_center - y_height, y_center + y_height]
     
-    # Keep the cursor alive by attaching it to the axis object
-    ax.airports_cursor = cursor
-
-
+    # Set the new extent and redraw the plot
+    event.inaxes.set_extent(new_extent, crs=plate_carree_spherical)
+    plt.draw()
 
 def plot_coordinates(original_coords, sorted_coords):
     parsed_original_coords = [parse_coordinate(coord) for coord in original_coords]
@@ -289,68 +332,47 @@ def plot_coordinates(original_coords, sorted_coords):
     sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
 
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': plate_carree_spherical})
-    # Remove padding around the plot
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     margin = 1.7
     min_lon, max_lon = min(original_lons) - margin, max(original_lons) + margin
     min_lat, max_lat = min(original_lats) - margin, max(original_lats) + margin
     ax.set_extent([min_lon, max_lon, min_lat, max_lat], crs=plate_carree_spherical)
 
-    # Plot base map layers
+    # Load and plot base map layers
     plot_base_map(ax, 
-              load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
-              load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
-            #   load_shapefile('shapes/ne_50m_admin_0_boundary_lines_disputed_areas.shp'),
-              load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp')
-                )
+                  load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
+                  load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'))
 
-    # Plot original coordinates
-    ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=geodetic_spherical, label='Original Coordinates')
-    for i, txt in enumerate(range(1, len(original_lons) + 1)):
-        ax.text(original_lons[i], original_lats[i], txt, fontsize=12, color='blue', transform=geodetic_spherical)
+    # Plot original and sorted coordinates with updated functions
+    ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=Geodetic(), label='Original Coordinates')
+    ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red', transform=Geodetic(), label='Sorted Coordinates')
 
-    # Plot sorted coordinates
-    ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red',
-        transform=geodetic_spherical, label='Sorted Coordinates')
-    for i, txt in enumerate(range(1, len(sorted_lons) + 1)):
-        ax.text(sorted_lons[i], sorted_lats[i], txt, fontsize=12, color='red', transform=geodetic_spherical)
-
-    # Compute the minimal enclosing circle using sorted_coords
+    # Minimal enclosing circle update
     sorted_points = list(zip(sorted_lats, sorted_lons))
     center_lat, center_lon, radius_nm = minimal_enclosing_circle(sorted_points)
-
-    # Plot the minimal enclosing circle
     plot_great_circle_circle(ax, center_lon, center_lat, radius_nm, 'green', f'{radius_nm:.2f} NM Enclosing Circle')
 
-    # Plot airports within bounding box
-    delta_deg = radius_nm * 1.852 / 110.574 + 5  # Approx conversion of NM to degrees
+    # Plot airports with updated bounding box calculations
+    delta_deg = radius_nm * 1.852 / 110.574 + 5
     bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
-    airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")  # Ensure the airports are loaded correctly
+    airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
     plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, radius_nm + 25)
 
-    # Display center coordinates and radius
-    ax.text(center_lon, center_lat, f"Center: {decimal_degrees_to_dms(center_lat, is_lat=True)}, {decimal_degrees_to_dms(center_lon, is_lat=False)}\nRadius: {radius_nm:.2f} NM",
-            fontsize=10, color='green', transform=geodetic_spherical, ha='left')
-
-    # Add mouse scroll event handler for zooming
-    def on_scroll(event):
-        base_scale = 2.0  # Zoom factor
-        if event.button == 'up':
-            scale_factor = 1 / base_scale
-        elif event.button == 'down':
-            scale_factor = base_scale
-        else:
-            return
-
-        x0, x1, y0, y1 = ax.get_extent(crs=plate_carree_spherical)
-        x_center = (x0 + x1) / 2
-        y_center = (y0 + y1) / 2
-        x_width = (x1 - x0) * scale_factor / 2
-        y_height = (y1 - y0) * scale_factor / 2
-        new_extent = [x_center - x_width, x_center + x_width,
-                      y_center - y_height, y_center + y_height]
-        ax.set_extent(new_extent, crs=plate_carree_spherical)
-        plt.draw()
+    # Finalize plot with legend and interactive features
+    legend_elements = [
+        Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
+        Line2D([0], [0], marker='o', color='blue', label='Original Coordinates', markerfacecolor='blue', markersize=5),
+        Line2D([0], [0], marker='o', color='red', label='Sorted Coordinates', markerfacecolor='red', markersize=5),
+        Line2D([0], [0], color='green', linestyle='--', label=f'{radius_nm:.2f} NM Enclosing Circle'),
+        Line2D([0], [0], marker='*', color='black', label='Airports', markerfacecolor='black', markersize=6)
+    ]
+    
+    fig.canvas.mpl_connect('scroll_event', on_scroll)
+    ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
+    
+    ax.format_coord = lambda x, y: format_coord(x, y)
+    plt.show()
 
     # Define custom legend handles
     legend_elements = [
@@ -372,6 +394,8 @@ def plot_coordinates(original_coords, sorted_coords):
     
     ax.format_coord = lambda x, y: format_coord(x, y)
     plt.show()
+
+
 
 
 def show_single_coord_on_map(coord):
@@ -402,12 +426,17 @@ def show_single_coord_on_map(coord):
     plot_great_circle_circle(ax, lon, lat, 5, 'red', '5NM Radius')
 
     # Define bounding box for airports (using 5 NM radius plus buffer)
-    delta_deg = 5 / 60.0  # Approximate conversion of NM to degrees
-    bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
+    # delta_deg = 5 / 60.0  # Approximate conversion of NM to degrees
+    # bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
+    # print(f"Bounding Box: {decimal_degrees_to_dms(bounding_box.bounds[1], is_lat=True)}, {decimal_degrees_to_dms(bounding_box.bounds[0], is_lat=False)}, {decimal_degrees_to_dms(bounding_box.bounds[3], is_lat=True)}, {decimal_degrees_to_dms(bounding_box.bounds[2], is_lat=False)}")
     
     # Load airports shapefile with target CRS as EPSG:4326
-    airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:4326")
-    plot_airports(ax, bounding_box, airports_gdf, lat, lon, 5)
+    # airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:4326")
+    # plot_airports(ax, bounding_box, airports_gdf, lat, lon, 100)
+    delta_deg = 5 * 1.852 / 110.574 + 5
+    bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
+    airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
+    plot_airports(ax, bounding_box, airports_gdf, lat, lon,10 + 20)
 
     # Add mouse scroll event handler for zooming
     def on_scroll(event):
