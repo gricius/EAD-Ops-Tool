@@ -82,18 +82,55 @@ def format_coordinates(match):
 
 def parse_coordinate(coord):
     """
-    Parses a coordinate string into latitude and longitude.
+    Parses a coordinate string into latitude and longitude in decimal degrees.
+    Supports formats with and without seconds.
     """
-    match = re.match(r'(\d{2})(\d{2})(\d{2})([NS])(\d{3})(\d{2})(\d{2})([EW])', coord)
+    # Pattern with seconds: DDMMSSNDDDMMSSE
+    match = re.match(r'^(\d{2})(\d{2})(\d{2})([NS])(\d{3})(\d{2})(\d{2})([EW])$', coord)
     if match:
-        return convert_to_decimal(match)
-    match = re.match(r'(\d{2})(\d{2})([NS])(\d{3})([EW])', coord)
-    if match:
-        return convert_to_decimal(match)
-    match = re.match(r'(\d{2})(\d{2})(\d{2})([NS])(\d{3})(\d{2})(\d{2})([EW])', coord)
-    if match:
-        return convert_to_decimal(match)
+        lat_deg = int(match.group(1))
+        lat_min = int(match.group(2))
+        lat_sec = float(match.group(3))
+        lat_dir = match.group(4)
+        lon_deg = int(match.group(5))
+        lon_min = int(match.group(6))
+        lon_sec = float(match.group(7))
+        lon_dir = match.group(8)
 
+        lat = lat_deg + lat_min / 60 + lat_sec / 3600
+        if lat_dir == 'S':
+            lat = -lat
+
+        lon = lon_deg + lon_min / 60 + lon_sec / 3600
+        if lon_dir == 'W':
+            lon = -lon
+
+        print(f"Parsed Coordinate: Latitude={lat}, Longitude={lon}")  # Debugging Statement
+        return lat, lon
+
+    # Pattern without seconds: DDMMNDDDMME
+    match = re.match(r'^(\d{2})(\d{2})([NS])(\d{3})(\d{2})([EW])$', coord)
+    if match:
+        lat_deg = int(match.group(1))
+        lat_min = int(match.group(2))
+        lat_dir = match.group(3)
+        lon_deg = int(match.group(4))
+        lon_min = int(match.group(5))
+        lon_dir = match.group(6)
+
+        lat = lat_deg + lat_min / 60
+        if lat_dir == 'S':
+            lat = -lat
+
+        lon = lon_deg + lon_min / 60
+        if lon_dir == 'W':
+            lon = -lon
+
+        print(f"Parsed Coordinate: Latitude={lat}, Longitude={lon}")  # Debugging Statement
+        return lat, lon
+
+    # If no pattern matches, show a warning
+    messagebox.showwarning('Warning', f'Unrecognized coordinate format: {coord}')
     return None, None
 
 def convert_to_decimal(match):
