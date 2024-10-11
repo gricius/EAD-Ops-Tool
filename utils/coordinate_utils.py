@@ -105,7 +105,7 @@ def parse_coordinate(coord):
         if lon_dir == 'W':
             lon = -lon
 
-        print(f"Parsed Coordinate: Latitude={lat}, Longitude={lon}")  # Debugging Statement
+        #print(f"Parsed Coordinate: Latitude={lat}, Longitude={lon}")  # Debugging Statement
         return lat, lon
 
     # Pattern without seconds: DDMMNDDDMME
@@ -126,7 +126,7 @@ def parse_coordinate(coord):
         if lon_dir == 'W':
             lon = -lon
 
-        print(f"Parsed Coordinate: Latitude={lat}, Longitude={lon}")  # Debugging Statement
+        #print(f"Parsed Coordinate: Latitude={lat}, Longitude={lon}")  # Debugging Statement
         return lat, lon
 
     # If no pattern matches, show a warning
@@ -195,7 +195,8 @@ def sort_coordinates(coords):
 
     # Map back to the original coordinates format
     sorted_coords = [coords[parsed_coords.index(point)] for point in sorted_points]
-    # print("Sorted Coordinates:", sorted_coords)
+    # remove duplicates
+    sorted_coords = list(dict.fromkeys(sorted_coords))
     return sorted_coords
 
 # Existing convex hull function to compute the convex boundary for reference

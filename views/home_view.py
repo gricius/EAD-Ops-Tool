@@ -1,5 +1,7 @@
 # views/home_view.py
 import tkinter as tk
+import pandas as pd
+import os
 
 def show_home(root, main_frame, current_theme):
     # Clear the main frame
@@ -11,22 +13,62 @@ def show_home(root, main_frame, current_theme):
     frame = tk.Frame(main_frame)
     frame.pack(fill="both", expand=True)
 
-    header = tk.Label(frame, text="Disclaimer: This application can be used only for testing purposes.", font=("Arial", 14))
+    header = tk.Label(
+        frame, 
+        text="Disclaimer: This application can be used only for testing purposes.", 
+        font=("Arial", 14)
+    )
     header.pack(pady=10)
 
+    news_file_path = r"y:\99.Operator Folders\FRA\AG\news.xlsx"
+
     try:
-        with open("news.txt", "r") as file:
-            news_content = file.read()
-    except FileNotFoundError:
-        news_content = "No recent updates."
+        if os.path.exists(news_file_path):
+            # Read the Excel file using pandas
+            df = pd.read_excel(news_file_path, sheet_name="Sheet1")
 
-    news_label = tk.Label(frame, text='News, hints etc.:', font=("Arial", 12))
+            # Ensure the required columns are present
+            expected_columns = {'Date', 'App', 'type', 'message'}
+            if not expected_columns.issubset(df.columns):
+                raise ValueError(f"Excel file is missing one of the required columns: {expected_columns}")
+
+            # Sort the news by Date in descending order (latest first)
+            df.sort_values(by='Date', ascending=False, inplace=True)
+
+            # Format the news content
+            news_content = ""
+            for _, row in df.iterrows():
+                date = row['Date'].strftime('%Y-%m-%d') if pd.notnull(row['Date']) else "N/A"
+                app = row['App'] if pd.notnull(row['App']) else "N/A"
+                type_ = row['type'] if pd.notnull(row['type']) else "N/A"
+                message = row['message'] if pd.notnull(row['message']) else ""
+                news_content += f"{date} - {app} - {type_}: {message}\n"
+        else:
+            news_content = "No recent updates."
+    except Exception as e:
+        news_content = f"Error reading news: {e}"
+
+    # Title for the news section
+    news_label_title = tk.Label(
+        frame, 
+        text='News, hints etc.:', 
+        font=("Arial", 12)
+    )
+    news_label_title.pack(pady=10)
+
+    # Display the news content
+    news_label = tk.Label(
+        frame, 
+        text=news_content, 
+        justify=tk.LEFT, 
+        wraplength=600, 
+        font=("Arial", 10, "italic"), 
+        bg=current_theme['bg'], 
+        fg=current_theme['fg']
+    )
     news_label.pack(pady=10)
 
-    news_label = tk.Label(frame, text=f"{news_content}", justify=tk.LEFT, wraplength=600, font=("Italic", 10), bg=current_theme['bg'], fg=current_theme['fg'])
-    news_label.pack(pady=10)
-
-    # function to show the information about the application
+    # Function to show the information about the application
     def show_info(parent):
         info_window = tk.Toplevel(parent)
         info_window.title("About the EAD OPS Tool")
@@ -73,7 +115,10 @@ def show_home(root, main_frame, current_theme):
         # Disable editing
         text_widget.config(state="disabled")
 
-
-    # add a button to show modal top level window information about the application
-    button = tk.Button(frame, text="About the EAD OPS Tool", command=lambda: show_info(root))
+    # Add a button to show modal top-level window information about the application
+    button = tk.Button(
+        frame, 
+        text="About the EAD OPS Tool", 
+        command=lambda: show_info(root)
+    )
     button.pack(pady=10)

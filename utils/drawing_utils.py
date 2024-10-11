@@ -24,6 +24,8 @@ import warnings
 from osgeo import gdal
 import mplcursors
 import random
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
 def set_gdal_data_path():
     """Set the GDAL data path based on whether the script is running from PyInstaller or development."""
@@ -199,7 +201,7 @@ def plot_great_circle_circle(ax, lon, lat, radius_nm, color, label):
 
     ax.plot(lons, lats, color=color, linestyle='--', transform=geodetic_spherical, label=label)
 
-def plot_base_map(ax, countries_gdf, disputed_areas_gdf, elevation_points_gdf, raster_path=None):
+def plot_base_map(ax, countries_gdf, disputed_areas_gdf, elevation_points_gdf):
     # Plot countries
     countries_gdf.plot(ax=ax, edgecolor='black', facecolor='tan', transform=geodetic_spherical)
     
@@ -350,11 +352,24 @@ def plot_coordinates(original_coords, sorted_coords):
         ax.set_extent(new_extent, crs=plate_carree_spherical)
         plt.draw()
 
+    # Define custom legend handles
+    legend_elements = [
+        Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
+        Line2D([0], [0], marker='o', color='blue', label='Original Coordinates',
+            markerfacecolor='blue', markersize=5, linestyle='-'),
+        Line2D([0], [0], marker='o', color='red', label='Sorted Coordinates',
+            markerfacecolor='red', markersize=5, linestyle='-'),
+        Line2D([0], [0], color='green', linestyle='--', label=f'{radius_nm:.2f} NM Enclosing Circle'),
+        Line2D([0], [0], marker='*', color='black', label='Airports',
+            markerfacecolor='black', markersize=6, linestyle='None')
+    ]
+    
     # Connect the scroll event to the handler
     fig.canvas.mpl_connect('scroll_event', on_scroll)
 
-    # Add legend
-    plt.legend()
+    # Add custom legend
+    ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
+    
     ax.format_coord = lambda x, y: format_coord(x, y)
     plt.show()
 
@@ -414,12 +429,24 @@ def show_single_coord_on_map(coord):
         ax.set_extent(new_extent, crs=ccrs.PlateCarree())
         plt.draw()
 
+       
+    legend_elements = [
+        Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
+        Line2D([0], [0], marker='*', color='black', label='Airports',
+            markerfacecolor='black', markersize=6, linestyle='None'),
+        Line2D([0], [0], marker='o', color='blue', label='Coordinate',
+            markerfacecolor='blue', markersize=8, linestyle='None'),
+        Line2D([0], [0], color='blue', linestyle='--', label='1NM Radius'),
+        Line2D([0], [0], color='red', linestyle='--', label='5NM Radius')
+    ]
+    
     # Connect the scroll event to the handler
     fig.canvas.mpl_connect('scroll_event', on_scroll)
 
-    plt.title('Single Coordinate with 1 NM and 5 NM Radius Circles')
+    # Add custom legend
+    ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
+    
     ax.format_coord = lambda x, y: format_coord(x, y)
-    plt.legend()
     plt.show()
 
 def show_on_map(original_coords, sorted_coords):
