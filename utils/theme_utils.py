@@ -13,7 +13,7 @@ DAY_THEME = {
     'canvas_bg': 'white',
     'canvas_fg': 'black',
     'point_fill_color': 'blue',
-    'line_color': 'blue',
+    'line_color': 'red',
     'text_color': 'black',
     'highlightbackground': 'lightgrey',
 }

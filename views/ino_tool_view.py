@@ -661,13 +661,13 @@ def show_ino_tool(root, main_frame, current_theme):
     tk.Radiobutton(conversion_frame, text="M", variable=uom_var, value="M", selectcolor=current_theme['highlightbackground']).grid(row=3, column=1, padx=5, sticky="w")
     tk.Radiobutton(conversion_frame, text="FT", variable=uom_var, value="FT", selectcolor=current_theme['highlightbackground']).grid(row=3, column=2, padx=5, sticky="w")
 
-    calculate_button = tk.Button(conversion_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, result_entry, root))
+    calculate_button = tk.Button(conversion_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, fl_result_entry, root))
     calculate_button.grid(row=4, column=0, columnspan=2, pady=5, sticky="ew")
 
     result_label = tk.Label(conversion_frame, text="Result")
     result_label.grid(row=5, column=0, padx=5, pady=5, sticky="e")
-    result_entry = tk.Entry(conversion_frame, width=10)
-    result_entry.grid(row=5, column=1, padx=5, pady=5, columnspan=2)
+    fl_result_entry = tk.Entry(conversion_frame, width=10)
+    fl_result_entry.grid(row=5, column=1, padx=5, pady=5, columnspan=2)
 
     # Template frame
     template_frame = tk.Frame(frame, bd=2, relief="raised")

@@ -522,6 +522,9 @@ def draw_coordinates(coords, canvas, current_theme):
     point_fill_color = current_theme.get('point_fill_color', current_theme['canvas_fg'])
     line_color = current_theme.get('line_color', current_theme['canvas_fg'])
     text_color = current_theme.get('text_color', current_theme['canvas_fg'])
+    
+    # Define the line width (you can adjust this value or retrieve it from current_theme)
+    line_width = current_theme.get('line_width', 4)  # Default to 2 if not specified
 
     # Plot points and lines on the canvas
     for i, (lat, lon) in enumerate(zip(lats, lons)):
@@ -532,9 +535,9 @@ def draw_coordinates(coords, canvas, current_theme):
     for i in range(len(lats) - 1):
         x1, y1 = transform(lats[i], lons[i])
         x2, y2 = transform(lats[i + 1], lons[i + 1])
-        canvas.create_line(x1, y1, x2, y2, fill=line_color)
+        canvas.create_line(x1, y1, x2, y2, fill=line_color, width=line_width)
 
     # Close the polygon by connecting the last point to the first
     x1, y1 = transform(lats[-1], lons[-1])
     x2, y2 = transform(lats[0], lons[0])
-    canvas.create_line(x1, y1, x2, y2, fill=line_color)
+    canvas.create_line(x1, y1, x2, y2, fill=line_color, width=line_width)
