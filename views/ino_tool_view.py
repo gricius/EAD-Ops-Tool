@@ -493,7 +493,7 @@ def show_ino_tool(root, main_frame, current_theme):
         return  # Stop if there's an error loading the data
 
     # Set up the main frame layout
-    frame = tk.Frame(main_frame, cursor="cross")
+    frame = tk.Frame(main_frame, cursor="cross", highlightbackground=current_theme['highlightbackground'], highlightthickness=2, highlightcolor=current_theme['highlightbackground'])
     frame.grid(sticky="nsew", padx=5, pady=5)
 
    
@@ -507,7 +507,7 @@ def show_ino_tool(root, main_frame, current_theme):
         source_text.delete("1.0", tk.END)
 
     # Input frame for paste buttons and text area
-    input_frame = tk.Frame(frame, bd=2, relief="raised")
+    input_frame = tk.Frame(frame, relief="raised", border=5)
     input_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
     input_frame.grid_columnconfigure(0, weight=1)  # Allow input frame to expand
 
@@ -525,11 +525,12 @@ def show_ino_tool(root, main_frame, current_theme):
     column_two_frame.grid_columnconfigure(0, weight=1)
 
     # Original canvas
-    original_canvas = tk.Canvas(column_two_frame, width=320, height=320, bg=current_theme['canvas_bg'])
+    original_canvas_frame = tk.Frame(column_two_frame, bg=current_theme['bg'], relief="raised", border=5)
+    original_canvas = tk.Canvas(original_canvas_frame, width=320, height=320, bg=current_theme['canvas_bg'], border=0)
     original_canvas.grid(row=0, column=0, padx=5, pady=5)
 
     # Sorted canvas
-    sorted_canvas = tk.Canvas(column_two_frame, width=320, height=320, bg=current_theme['canvas_bg'])
+    sorted_canvas = tk.Canvas(column_two_frame, width=320, height=320, bg=current_theme['canvas_bg'], border=0)
     sorted_canvas.grid(row=1, column=0, padx=5, pady=5)
 
     # Function to update the coordinate count label
@@ -578,7 +579,7 @@ def show_ino_tool(root, main_frame, current_theme):
     paste_time_button.grid(row=0, column=1, padx=5, pady=5)
 
     # Conversion frame for calculations and results
-    conversion_frame = tk.Frame(frame, bd=2, relief="raised")
+    conversion_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
     conversion_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
     conversion_frame.grid_columnconfigure(1, weight=1)
 
@@ -670,7 +671,7 @@ def show_ino_tool(root, main_frame, current_theme):
     fl_result_entry.grid(row=5, column=1, padx=5, pady=5, columnspan=2)
 
     # Template frame
-    template_frame = tk.Frame(frame, bd=2, relief="raised")
+    template_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
     template_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
     template_frame.grid_columnconfigure(1, weight=1)
 
@@ -703,7 +704,7 @@ def show_ino_tool(root, main_frame, current_theme):
     copy_template3_button.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
    # Abbreviation search frame
-    abbreviation_frame = tk.Frame(frame, bd=2, relief="raised")
+    abbreviation_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
     abbreviation_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
     
     abbr_entry = create_entry_with_label(abbreviation_frame, "Abbr.", 20, 0, 0)
@@ -782,7 +783,7 @@ def show_ino_tool(root, main_frame, current_theme):
 
     # Label radial
     # Create a frame to hold both labels and entries
-    radial_distance_frame = tk.Frame(column_one_frame, bg=current_theme['bg'])
+    radial_distance_frame = tk.Frame(column_one_frame, bg=current_theme['bg'], border=0)
     radial_distance_frame.grid(row=10, column=0, padx=5, pady=5, sticky="w")
 
     # Radial Label and Entry
@@ -821,7 +822,7 @@ def show_ino_tool(root, main_frame, current_theme):
 
 
     # Column 2: Oroginal and Sorted canvases
-    column_two_frame = tk.Frame(frame, bd=2, relief="raised")
+    column_two_frame = tk.Frame(frame, relief="raised", border=5)
     column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
     column_two_frame.grid_rowconfigure(0, weight=1)
     column_two_frame.grid_columnconfigure(0, weight=1)

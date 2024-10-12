@@ -284,13 +284,13 @@ def plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, max_di
                 # Store the airport label for the tooltip
                 airport_ident_name = (
                     f"{record['ident']} - {record['name']}\n"
-                    f"({decimal_degrees_to_dms(airport_lat, True)}, "
-                    f"{decimal_degrees_to_dms(airport_lon, False)})\n"
+                    f"{decimal_degrees_to_dms(airport_lat, True)}, "
+                    f"{decimal_degrees_to_dms(airport_lon, False)}\n"
                     f"Type: {record['type']}\n"
                 )
                 labels.append(airport_ident_name)
 
-    cursor = mplcursors.cursor(markers, hover=True)
+    cursor = mplcursors.cursor(markers, hover=False)
     @cursor.connect("add")
     def on_add(sel):
         sel.annotation.set_text(labels[markers.index(sel.artist)])

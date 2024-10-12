@@ -33,11 +33,12 @@ NIGHT_THEME = {
     'canvas_fg': 'black',
     'point_fill_color': 'yellow',
     'line_color': 'cyan',
-    'text_color': 'black',
-    'text_bg_color': 'violet',
-    'text_bg_outline_color': 'lime',
-    'line_width': 2,
-    'highlightbackground': 'black',
+    'text_color': 'white',
+    'text_bg_color': 'black',
+    'text_bg_outline_color': 'red',
+    'line_width': 1,
+    'highlightbackground': 'red',
+    'highlightbackgroundactive': 'red',
 }
 
 def set_theme(widget, theme):
