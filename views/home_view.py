@@ -2,6 +2,7 @@
 import tkinter as tk
 import pandas as pd
 import os
+from tkinter import scrolledtext  # Import ScrolledText for better text display
 
 def show_home(root, main_frame, current_theme):
     # Clear the main frame
@@ -20,17 +21,36 @@ def show_home(root, main_frame, current_theme):
     )
     header.pack(pady=10)
 
-    news_file_path = r"y:\99.Operator Folders\FRA\AG\news.xlsx"
+    # Determine the path to news.xlsx
+    if os.path.exists("news.xlsx"):
+        news_file_path = "news.xlsx"
+        print("Using local news.xlsx file.")
+    else:
+        news_file_path = "Y:/99.Operator Folders/FRA/AG/news.xlsx"
+        print("Local news.xlsx not found. Using network path:", news_file_path)
 
     try:
         if os.path.exists(news_file_path):
+            print(f"Reading news from: {news_file_path}")
             # Read the Excel file using pandas
             df = pd.read_excel(news_file_path, sheet_name="Sheet1")
+            print("Excel file read successfully.")
 
             # Ensure the required columns are present
             expected_columns = {'Date', 'App', 'type', 'message'}
-            if not expected_columns.issubset(df.columns):
-                raise ValueError(f"Excel file is missing one of the required columns: {expected_columns}")
+            actual_columns = set(df.columns)
+            print("Columns in Excel file:", actual_columns)
+            if not expected_columns.issubset(actual_columns):
+                missing = expected_columns - actual_columns
+                raise ValueError(f"Excel file is missing required columns: {missing}")
+
+            # Convert 'Date' column to datetime if not already
+            if not pd.api.types.is_datetime64_any_dtype(df['Date']):
+                print("Converting 'Date' column to datetime.")
+                df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+
+            # Drop rows where all elements are NaN
+            df.dropna(how='all', inplace=True)
 
             # Sort the news by Date in descending order (latest first)
             df.sort_values(by='Date', ascending=False, inplace=True)
@@ -43,10 +63,18 @@ def show_home(root, main_frame, current_theme):
                 type_ = row['type'] if pd.notnull(row['type']) else "N/A"
                 message = row['message'] if pd.notnull(row['message']) else ""
                 news_content += f"{date} - {app} - {type_}: {message}\n"
+
+            if not news_content.strip():
+                news_content = "No recent updates."
+                print("News content is empty after processing.")
+            else:
+                print("News content formatted successfully.")
         else:
+            print("News file does not exist at:", news_file_path)
             news_content = "No recent updates."
     except Exception as e:
         news_content = f"Error reading news: {e}"
+        print(news_content)
 
     # Title for the news section
     news_label_title = tk.Label(
@@ -56,17 +84,23 @@ def show_home(root, main_frame, current_theme):
     )
     news_label_title.pack(pady=10)
 
-    # Display the news content
-    news_label = tk.Label(
+    # Display the news content using ScrolledText for better handling of large content
+    news_text = scrolledtext.ScrolledText(
         frame, 
-        text=news_content, 
-        justify=tk.LEFT, 
-        wraplength=600, 
+        wrap=tk.WORD, 
+        width=80, 
+        height=20, 
         font=("Arial", 10, "italic"), 
         bg=current_theme['bg'], 
         fg=current_theme['fg']
     )
-    news_label.pack(pady=10)
+    news_text.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+
+    # Insert the news content
+    news_text.insert(tk.END, news_content)
+
+    # Make the text read-only
+    news_text.config(state='disabled')
 
     # Function to show the information about the application
     def show_info(parent):
