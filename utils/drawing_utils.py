@@ -51,8 +51,8 @@ def check_gdal_data():
 check_gdal_data()
 
 
-# Ensure we're using a font that can handle most glyphs
-matplotlib.rcParams['font.family'] = 'DejaVu Sans'
+# Ensure we're using a font that can handle glyph 133 \x85 (ellipsis)
+matplotlib.rcParams['font.family'] = 'sans-serif'
 
 active_cursors = []
 
@@ -516,26 +516,47 @@ def draw_coordinates(coords, canvas, current_theme):
         return x, y
 
     # Define the font for the text
-    bold_font = tkFont.Font(family="Helvetica", size=10, weight="bold")
+    bold_font = tkFont.Font(family="Helvetica", size=12, weight="bold")
 
     # Get colors from current_theme
-    point_fill_color = current_theme.get('point_fill_color', current_theme['canvas_fg'])
-    line_color = current_theme.get('line_color', current_theme['canvas_fg'])
+    point_fill_color = current_theme.get('point_fill_color', current_theme['point_fill_color']) 
+    line_color = current_theme.get('line_color', current_theme['line_color'])
     text_color = current_theme.get('text_color', current_theme['canvas_fg'])
-    
-    # Define the line width (you can adjust this value or retrieve it from current_theme)
-    line_width = current_theme.get('line_width', 4)  # Default to 2 if not specified
+    line_width = current_theme.get('line_width', current_theme['line_width'])
+    text_bg_color = current_theme.get('text_bg_color', current_theme['text_bg_color'])  
+    text_bg_outline_color = current_theme.get('text_bg_outline_color', current_theme['text_bg_outline_color'])
 
-    # Plot points and lines on the canvas
-    for i, (lat, lon) in enumerate(zip(lats, lons)):
-        x, y = transform(lat, lon)
-        canvas.create_oval(x - 2, y - 2, x + 2, y + 2, fill=point_fill_color)
-        canvas.create_text(x, y, text=str(i + 1), anchor=tk.NW, fill=text_color, font=bold_font)
+    # Define radius for the point and text background circle
+    point_radius = 5  # Radius for the point
+    text_radius = 10  # Radius for the text background circle
 
+    # Plot lines connecting points
     for i in range(len(lats) - 1):
         x1, y1 = transform(lats[i], lons[i])
         x2, y2 = transform(lats[i + 1], lons[i + 1])
         canvas.create_line(x1, y1, x2, y2, fill=line_color, width=line_width)
+
+    # Plot each point and its corresponding text with a background circle
+    for i, (lat, lon) in enumerate(zip(lats, lons)):
+        x, y = transform(lat, lon)
+        
+        # Draw a filled circle behind the text
+        canvas.create_oval(
+            x - text_radius, y - text_radius,
+            x + text_radius, y + text_radius,
+            fill=text_bg_color,
+            outline=text_bg_outline_color,
+            width=2
+        )
+        
+        # Draw the text centered on the circle
+        canvas.create_text(
+            x, y,
+            text=str(i + 1),
+            anchor=tk.CENTER,  # Center the text on (x, y)
+            fill=text_color,
+            font=bold_font
+        )
 
     # Close the polygon by connecting the last point to the first
     x1, y1 = transform(lats[-1], lons[-1])

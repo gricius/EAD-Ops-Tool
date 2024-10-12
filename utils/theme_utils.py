@@ -15,6 +15,9 @@ DAY_THEME = {
     'point_fill_color': 'blue',
     'line_color': 'red',
     'text_color': 'black',
+    'text_bg_color': 'white',
+    'text_bg_outline_color': 'red',
+    'line_width': 4,
     'highlightbackground': 'lightgrey',
 }
 
@@ -27,10 +30,13 @@ NIGHT_THEME = {
     'nav_bar_bg': 'black',
     'window_alpha': 0.85,
     'canvas_bg': 'black',
-    'canvas_fg': 'white',
-    'point_fill_color': 'cyan',
+    'canvas_fg': 'black',
+    'point_fill_color': 'yellow',
     'line_color': 'cyan',
-    'text_color': 'white',
+    'text_color': 'black',
+    'text_bg_color': 'violet',
+    'text_bg_outline_color': 'lime',
+    'line_width': 2,
     'highlightbackground': 'black',
 }
 

@@ -24,14 +24,14 @@ def show_home(root, main_frame, current_theme):
     # Determine the path to news.xlsx
     if os.path.exists("news.xlsx"):
         news_file_path = "news.xlsx"
-        print("Using local news.xlsx file.")
+        # print("Using local news.xlsx file.")
     else:
         news_file_path = "Y:/99.Operator Folders/FRA/AG/news.xlsx"
-        print("Local news.xlsx not found. Using network path:", news_file_path)
+        # print("Local news.xlsx not found. Using network path:", news_file_path)
 
     try:
         if os.path.exists(news_file_path):
-            print(f"Reading news from: {news_file_path}")
+            # print(f"Reading news from: {news_file_path}")
             # Read the Excel file using pandas
             df = pd.read_excel(news_file_path, sheet_name="Sheet1")
             print("Excel file read successfully.")
@@ -39,14 +39,14 @@ def show_home(root, main_frame, current_theme):
             # Ensure the required columns are present
             expected_columns = {'Date', 'App', 'type', 'message'}
             actual_columns = set(df.columns)
-            print("Columns in Excel file:", actual_columns)
+            # print("Columns in Excel file:", actual_columns)
             if not expected_columns.issubset(actual_columns):
                 missing = expected_columns - actual_columns
                 raise ValueError(f"Excel file is missing required columns: {missing}")
 
             # Convert 'Date' column to datetime if not already
             if not pd.api.types.is_datetime64_any_dtype(df['Date']):
-                print("Converting 'Date' column to datetime.")
+                # print("Converting 'Date' column to datetime.")
                 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
             # Drop rows where all elements are NaN
@@ -66,15 +66,14 @@ def show_home(root, main_frame, current_theme):
 
             if not news_content.strip():
                 news_content = "No recent updates."
-                print("News content is empty after processing.")
-            else:
-                print("News content formatted successfully.")
+                # print("News content is empty after processing.")
+            
         else:
-            print("News file does not exist at:", news_file_path)
+            # print("News file does not exist at:", news_file_path)
             news_content = "No recent updates."
     except Exception as e:
         news_content = f"Error reading news: {e}"
-        print(news_content)
+        # print(news_content)
 
     # Title for the news section
     news_label_title = tk.Label(

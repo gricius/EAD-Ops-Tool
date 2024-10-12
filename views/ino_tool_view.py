@@ -760,13 +760,13 @@ def show_ino_tool(root, main_frame, current_theme):
     sorted_text.grid(row=5, column=0, padx=5, pady=5)
 
     # Copy button for sorted text (modified to strip line numbers)
-    sorted_copy_button = tk.Button(column_one_frame, text="Copy", command=lambda: copy_to_clipboard(
+    sorted_copy_button = tk.Button(column_one_frame, text=" Copy Sorted  ", command=lambda: copy_to_clipboard(
         root, get_text_without_line_numbers(sorted_text), sorted_copy_button
     ))
     sorted_copy_button.grid(row=6, column=0, padx=5, pady=5, sticky="w")
 
     # Extreme coordinates Copy button for var extremities_text
-    extremities_copy_button = tk.Button(column_one_frame, text="Copy Extremities", command=lambda: copy_to_clipboard(
+    extremities_copy_button = tk.Button(column_one_frame, text="Extremities", command=lambda: copy_to_clipboard(
     root, extremities_str, extremities_copy_button
     ))
     extremities_copy_button.grid(row=6, column=0, padx=5, pady=5, sticky="e")
