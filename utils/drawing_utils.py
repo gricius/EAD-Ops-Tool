@@ -13,6 +13,7 @@ import numpy as np
 import sys
 import os
 from utils.coordinate_utils import parse_coordinate
+from utils.coordinate_utils import convex_hull
 # from geopy.distance import great_circle  
 from geopy.distance import geodesic
 import warnings
@@ -22,7 +23,6 @@ import mplcursors
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 # from shapely.geometry import MultiPoint
-# from scipy.spatial import ConvexHull
 
 def set_gdal_data_path():
     """Set the GDAL data path based on whether the script is running from PyInstaller or development."""
@@ -350,7 +350,7 @@ def plot_coordinates(original_coords, sorted_coords):
     delta_deg = radius_nm * 1.852 / 110.574 + 5
     bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
-    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, radius_nm + 25)
+    plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, radius_nm)
 
     # Finalize plot with legend and interactive features
     legend_elements = [
