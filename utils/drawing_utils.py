@@ -2,34 +2,27 @@
 import tkinter as tk
 from tkinter import messagebox
 import tkinter.font as tkFont
-# from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import cartopy.crs as ccrs
 from cartopy.crs import Geodetic
 from cartopy.crs import Globe
-# from cartopy.io.shapereader import Reader
-# from cartopy.feature import ShapelyFeature
 from shapely.geometry import Point, box
-# from cartopy.crs import Mercator, PlateCarree
-# from matplotlib.patches import Circle
 import numpy as np
 import sys
 import os
 from utils.coordinate_utils import parse_coordinate
-from geopy.distance import great_circle  
+# from geopy.distance import great_circle  
 from geopy.distance import geodesic
-# from cartopy.geodesic import Geodesic
 import warnings
-# import pyogrio
 from osgeo import gdal
 import mplcursors
-import random
+# import random
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
-from shapely.geometry import MultiPoint
-from scipy.spatial import ConvexHull
+# from shapely.geometry import MultiPoint
+# from scipy.spatial import ConvexHull
 
 def set_gdal_data_path():
     """Set the GDAL data path based on whether the script is running from PyInstaller or development."""
@@ -362,38 +355,59 @@ def plot_coordinates(original_coords, sorted_coords):
     # Finalize plot with legend and interactive features
     legend_elements = [
         Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
-        Line2D([0], [0], marker='o', color='blue', label='Original Coordinates', markerfacecolor='blue', markersize=5),
-        Line2D([0], [0], marker='o', color='red', label='Sorted Coordinates', markerfacecolor='red', markersize=5),
-        Line2D([0], [0], color='green', linestyle='--', label=f'{radius_nm:.2f} NM Enclosing Circle'),
-        Line2D([0], [0], marker='*', color='black', label='Airports', markerfacecolor='black', markersize=6)
-    ]
-    
-    fig.canvas.mpl_connect('scroll_event', on_scroll)
-    ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
-    
-    ax.format_coord = lambda x, y: format_coord(x, y)
-    plt.show()
-
-    # Define custom legend handles
-    legend_elements = [
-        Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
         Line2D([0], [0], marker='o', color='blue', label='Original Coordinates',
             markerfacecolor='blue', markersize=5, linestyle='-'),
         Line2D([0], [0], marker='o', color='red', label='Sorted Coordinates',
             markerfacecolor='red', markersize=5, linestyle='-'),
         Line2D([0], [0], color='green', linestyle='--', label=f'{radius_nm:.2f} NM Enclosing Circle'),
-        Line2D([0], [0], marker='*', color='black', label='Airports',
+        Line2D([0], [0], marker='*', color='black', label='Airport',
             markerfacecolor='black', markersize=6, linestyle='None')
     ]
     
-    # Connect the scroll event to the handler
     fig.canvas.mpl_connect('scroll_event', on_scroll)
-
-    # Add custom legend
     ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
     
     ax.format_coord = lambda x, y: format_coord(x, y)
+    
+    # Suppress only warnings that contain "glyph 133" or specific to \x85
+    warnings.filterwarnings(
+        "ignore",
+        message=".*glyph 133.*",
+        category=UserWarning,
+        module="matplotlib"
+    )
+
     plt.show()
+
+    # # Define custom legend handles
+    # legend_elements = [
+    #     Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
+    #     Line2D([0], [0], marker='o', color='blue', label='Original Coordinates',
+    #         markerfacecolor='blue', markersize=5, linestyle='-'),
+    #     Line2D([0], [0], marker='o', color='red', label='Sorted Coordinates',
+    #         markerfacecolor='red', markersize=5, linestyle='-'),
+    #     Line2D([0], [0], color='green', linestyle='--', label=f'{radius_nm:.2f} NM Enclosing Circle'),
+    #     Line2D([0], [0], marker='*', color='black', label='Airports',
+    #         markerfacecolor='black', markersize=6, linestyle='None')
+    # ]
+    
+    # # Connect the scroll event to the handler
+    # fig.canvas.mpl_connect('scroll_event', on_scroll)
+
+    # # Add custom legend
+    # ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
+    
+    # ax.format_coord = lambda x, y: format_coord(x, y)
+
+    # # Suppress only warnings that contain "glyph 133" or specific to \x85
+    # warnings.filterwarnings(
+    #     "ignore",
+    #     message=".*glyph 133.*",
+    #     category=UserWarning,
+    #     module="matplotlib"
+    # )
+
+    # plt.show()
 
 
 
@@ -425,14 +439,7 @@ def show_single_coord_on_map(coord):
     plot_great_circle_circle(ax, lon, lat, 1, 'blue', '1NM Radius')
     plot_great_circle_circle(ax, lon, lat, 5, 'red', '5NM Radius')
 
-    # Define bounding box for airports (using 5 NM radius plus buffer)
-    # delta_deg = 5 / 60.0  # Approximate conversion of NM to degrees
-    # bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
-    # print(f"Bounding Box: {decimal_degrees_to_dms(bounding_box.bounds[1], is_lat=True)}, {decimal_degrees_to_dms(bounding_box.bounds[0], is_lat=False)}, {decimal_degrees_to_dms(bounding_box.bounds[3], is_lat=True)}, {decimal_degrees_to_dms(bounding_box.bounds[2], is_lat=False)}")
-    
-    # Load airports shapefile with target CRS as EPSG:4326
-    # airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:4326")
-    # plot_airports(ax, bounding_box, airports_gdf, lat, lon, 100)
+   
     delta_deg = 5 * 1.852 / 110.574 + 5
     bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
@@ -461,7 +468,7 @@ def show_single_coord_on_map(coord):
        
     legend_elements = [
         Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
-        Line2D([0], [0], marker='*', color='black', label='Airports',
+        Line2D([0], [0], marker='*', color='black', label='Airport',
             markerfacecolor='black', markersize=6, linestyle='None'),
         Line2D([0], [0], marker='o', color='blue', label='Coordinate',
             markerfacecolor='blue', markersize=8, linestyle='None'),
@@ -476,6 +483,15 @@ def show_single_coord_on_map(coord):
     ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
     
     ax.format_coord = lambda x, y: format_coord(x, y)
+
+    # Suppress only warnings that contain "glyph 133" or specific to \x85
+    warnings.filterwarnings(
+        "ignore",
+        message=".*glyph 133.*",
+        category=UserWarning,
+        module="matplotlib"
+    )
+    
     plt.show()
 
 def show_on_map(original_coords, sorted_coords):
