@@ -45,14 +45,13 @@ def show_todo(root, main_frame, current_theme):
 
     for task in tasks:
         task_listbox.insert(tk.END, task)
-        # add separator
-        task_listbox.insert(tk.END, "-" * 50)
+        
+
 
     def add_task():
         task = task_entry.get()
         if task:
             task_listbox.insert(tk.END, task)
-            task_listbox.insert(tk.END, "-" * 50)
             tasks.append(task)
             save_tasks(tasks)
             task_entry.delete(0, tk.END)
@@ -63,8 +62,8 @@ def show_todo(root, main_frame, current_theme):
             # Remove selected items and their separators
             for index in reversed(selected_indices):
                 task_listbox.delete(index)
-                if index < task_listbox.size() and task_listbox.get(index) == "-" * 50:
-                    task_listbox.delete(index)
+                # if index < task_listbox.size() and task_listbox.get(index) == "-" * 50:
+                #     task_listbox.delete(index)
             # Update tasks
             tasks[:] = [task_listbox.get(i) for i in range(0, task_listbox.size(), 2)]
             save_tasks(tasks)
