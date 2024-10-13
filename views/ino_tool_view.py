@@ -561,17 +561,8 @@ def show_ino_tool(root, main_frame, current_theme):
         update_coord_count()
 
     # Paste COORD button
-    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers,
+    paste_coord_button = tk.Button(input_frame, text="Paste & Format COORD", command=paste_and_add_line_numbers,
                                    bg=current_theme['button_bg'], fg=current_theme['fg'])
-    paste_coord_button.grid(row=0, column=0, padx=5, pady=5)
-
-    # Paste YB D) button
-    paste_time_button = tk.Button(input_frame, text="Paste YB D)", command=lambda: paste_time_ranges(root, source_text),
-                                  bg=current_theme['button_bg'], fg=current_theme['fg'])
-    paste_time_button.grid(row=0, column=1, padx=5, pady=5)
-
-    # Paste COORD button
-    paste_coord_button = tk.Button(input_frame, text="Paste COORD", command=paste_and_add_line_numbers)
     paste_coord_button.grid(row=0, column=0, padx=5, pady=5)
 
     # Paste YB D) button

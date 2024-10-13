@@ -7,9 +7,10 @@ from math import atan2
 def extract_coordinates(text):
     """
     Extracts coordinates from the given text using predefined regex patterns.
+    Additionally, identifies invalid coordinate-like patterns in the remaining text.
     """
     patterns = [
-        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{1})([NS])(\d{3})(\d{2})(\d{2}\.\d{1})([EW])'), # 123456.7N123456.7E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{1})([NS])(\d{3})(\d{2})(\d{2}\.\d{1})([EW])'), # 123456.7N1234567.7E
         re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{2})([NS])(\d{3})(\d{2})(\d{2}\.\d{2})([EW])'), # 123456.78N123456.78E
         re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{3})([NS])(\d{3})(\d{2})(\d{2}\.\d{3})([EW])'), # 123456.789N123456.789E
         re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{4})([NS])(\d{3})(\d{2})(\d{2}\.\d{4})([EW])'), # 123456.7890N123456.7890E
@@ -20,41 +21,54 @@ def extract_coordinates(text):
         re.compile(r'([NS])(\d{2})(\d{2})(\d{2}\.\d{2})([EW])(\d{3})(\d{2})(\d{2}\.\d{2})') # N123456.78E123456.78
     ]
     # TODO: Add more patterns to match different coordinate formats
-    # invalid_patterns = [
-    #     re.compile(r'(\d{5}({NS})(\d{7}({EW}))'), # 12345N1234567E
-    #     re.compile(r'(\d{6}({NS})(\d{6}({EW}))'), # 123456N123456E
-    #     re.compile(r'(\d{5}({NS})(\d{6}({EW}))'), # 12345N123456E
-    #     re.compile(r'(\d{4}({NS})(\d{6}({EW}))'), # 1234N123456E
-    #     re.compile(r'(\d{4}({NS})(\d{4}({EW}))'), # 1234N1234E
-    #     re.compile(r'(\d{1}\.\d{5}({NS})(\d{1}\.\d{5}({EW}))'), # 1.23456N1.23456E
-    #     re.compile(r'(\d{1}\.\d{4}({NS})(\d{1}\.\d{4}({EW}))'), # 1.2345N1.2345E
-    #     re.compile(r'(\d{1}\.\d{6}(\d{1}\.\d{5})'), # 1.234561.23456
-    #     re.compile(r'(\d{1}\.\d{5}(\d{1}\.\d{4})'), # 1.23451.2345
-    # ]
+    invalid_patterns = [
+        re.compile(r'(\d{2})(\d{2})(\d{1}\.\d{1})([NS])(\d{3})(\d{2})(\d{2}\.\d{1})([EW])'), # 12345.7N1234567.7E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{1})([NS])(\d{3})(\d{2})(\d{1}\.\d{1})([EW])'), # 123456.7N123456.7E
+        re.compile(r'(\d{2})(\d{2})(\d{1}\.\d{2})([NS])(\d{3})(\d{2})(\d{2}\.\d{2})([EW])'), # 12345.78N123456.78E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{2})([NS])(\d{3})(\d{2})(\d{1}\.\d{2})([EW])'), # 123456.78N12345.78E
+        re.compile(r'(\d{2})(\d{2})(\d{1}\.\d{3})([NS])(\d{3})(\d{2})(\d{2}\.\d{3})([EW])'), # 12345.789N123456.789E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{3})([NS])(\d{3})(\d{2})(\d{1}\.\d{3})([EW])'), # 123456.789N12345.789E
+        re.compile(r'(\d{2})(\d{2})(\d{1}\.\d{4})([NS])(\d{3})(\d{2})(\d{2}\.\d{4})([EW])'), # 12345.7890N123456.7890E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\.\d{4})([NS])(\d{3})(\d{2})(\d{1}\.\d{4})([EW])'), # 123456.7890N12345.7890E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\d{1})([NS])(\d{3})(\d{2})(\d{2}\d{2})([EW])'), # 1234560N12345600E
+        re.compile(r'(\d{2})(\d{2})(\d{2}\d{2})([NS])(\d{3})(\d{2})(\d{2}\d{1})([EW])'), # 12345600N1234560E
+        re.compile(r'(\d{2})(\d{2})(\d{1})([NS])(\d{3})(\d{2})(\d{2})([EW])'), # 12345N1234567E
+        re.compile(r'(\d{2})(\d{2})(\d{2})([NS])(\d{3})(\d{2})(\d{1})([EW])'), # 123456N123456E
+        re.compile(r'(\d{2})(\d{1})([NS])(\d{3})(\d{2})([EW])'), # 123N12345E
+        re.compile(r'(\d{2})(\d{2})([NS])(\d{3})(\d{1})([EW])'), # 1234N1234E
+        re.compile(r'([NS])(\d{2})(\d{2})(\d{1})([EW])(\d{3})(\d{2})(\d{2})'), # N12345E123456
+        re.compile(r'([NS])(\d{2})(\d{2})(\d{2})([EW])(\d{3})(\d{2})(\d{1})'), # N123456E12345
+        re.compile(r'([NS])(\d{2})(\d{2})(\d{1}\.\d{2})([EW])(\d{3})(\d{2})(\d{2}\.\d{2})'), # N12345.78E1234567.78
+        re.compile(r'([NS])(\d{2})(\d{2})(\d{2}\.\d{2})([EW])(\d{3})(\d{2})(\d{1}\.\d{2})') # N123456.78E123456.78
+    ]
 
-    # # to be trimmed patterns
-    # coord_to_be_trimmed = [
-    #    re.compile(r'\d{7,10}[NS]\d{8,11}[EW]'), # from 7 to 10 digits N/S and 8 to 11 digits E/W
-    #    re.compile(r'\d{5}[NS]\d{7}[EW]'), # 5 digits N/S and 7 digits E/W
-    #    re.compile(r'\d{5}[NS]\d{6}[EW]'), # 5 digits N/S and 6 digits E/W
-    #    re.compile(r'\d{4}[NS]\d{6}[EW]'), # 4 digits N/S and 6 digits E/W
-    # ]
-
-    
     # Clean the input text
     cleaned_text = text.replace('\n', '').replace('\r', '').replace(' ', '').replace('/', '').replace(',', '').replace("'", "").replace('DEG', '').replace('-', '')
     coords = []
     invalid_coords = []
 
+    # Extract valid coordinates using the predefined patterns - patterns
     for pattern in patterns:
         matches = pattern.findall(cleaned_text)
         for match in matches:
             coord = format_coordinates(match)
             if coord:
                 coords.append(coord)
-            else:
-                invalid_coords.append(''.join(match))
-
+    
+    # Remove all valid coordinate substrings from cleaned_text to get suspect_coord
+    suspect_coord = cleaned_text
+    for pattern in patterns:
+        suspect_coord = pattern.sub('', suspect_coord)
+    
+    # Check suspect_coord against invalid_patterns and collect invalid_coords
+    for pattern in invalid_patterns:
+        matches = pattern.findall(suspect_coord)
+        for match in matches:
+            invalid_coord = format_coordinates(match)
+            if invalid_coord:
+                invalid_coords.append(invalid_coord)
+                print('Invalid Coordinates:', invalid_coords)
+    
     return coords, invalid_coords
 
 def format_coordinates(match):
@@ -139,14 +153,14 @@ def convert_to_decimal(match):
     """
     try:
         if len(match.groups()) == 8:
-            lat_deg = int(match[1])
-            lat_min = int(match[2])
-            lat_sec = float(match[3])
-            lat_dir = match[4]
-            lon_deg = int(match[5])
-            lon_min = int(match[6])
-            lon_sec = float(match[7])
-            lon_dir = match[8]
+            lat_deg = int(match.group(1))
+            lat_min = int(match.group(2))
+            lat_sec = float(match.group(3))
+            lat_dir = match.group(4)
+            lon_deg = int(match.group(5))
+            lon_min = int(match.group(6))
+            lon_sec = float(match.group(7))
+            lon_dir = match.group(8)
 
             lat = lat_deg + lat_min / 60 + lat_sec / 3600
             if lat_dir == 'S':
@@ -157,12 +171,12 @@ def convert_to_decimal(match):
 
             return lat, lon
         elif len(match.groups()) == 6:
-            lat_deg = int(match[1])
-            lat_min = int(match[2])
-            lat_dir = match[3]
-            lon_deg = int(match[4])
-            lon_min = int(match[5])
-            lon_dir = match[6]
+            lat_deg = int(match.group(1))
+            lat_min = int(match.group(2))
+            lat_dir = match.group(3)
+            lon_deg = int(match.group(4))
+            lon_min = int(match.group(5))
+            lon_dir = match.group(6)
 
             lat = lat_deg + lat_min / 60
             if lat_dir == 'S':
@@ -184,6 +198,9 @@ def sort_coordinates(coords):
     parsed_coords = [parse_coordinate(coord) for coord in coords]
     parsed_coords = [coord for coord in parsed_coords if coord != (None, None)]
 
+    if not parsed_coords:
+        return []
+
     # Calculate the centroid
     centroid = (
         sum(point[0] for point in parsed_coords) / len(parsed_coords),
@@ -194,9 +211,18 @@ def sort_coordinates(coords):
     sorted_points = sorted(parsed_coords, key=lambda point: atan2(point[1] - centroid[1], point[0] - centroid[0]))
 
     # Map back to the original coordinates format
-    sorted_coords = [coords[parsed_coords.index(point)] for point in sorted_points]
-    # remove duplicates
-    sorted_coords = list(dict.fromkeys(sorted_coords))
+    sorted_coords = []
+    used_coords = set()
+    for point in sorted_points:
+        try:
+            index = parsed_coords.index(point)
+            coord = coords[index]
+            if coord not in used_coords:
+                sorted_coords.append(coord)
+                used_coords.add(coord)
+        except ValueError:
+            continue
+
     return sorted_coords
 
 # Existing convex hull function to compute the convex boundary for reference
@@ -224,7 +250,7 @@ def convex_hull(points):
 
     return lower[:-1] + upper[:-1]
 
-# coordinate extrimities function. to extract four corners of extreme coordinates and return as var extremities_text
+# Coordinate extremities function to extract four corners of extreme coordinates and return as var extremities_text
 def coordinate_extremities(coords):
     """
     Extracts the four corners of the extreme coordinates from sorted_coords
@@ -303,9 +329,6 @@ def coordinate_extremities(coords):
 
     return extremities_str
 
-
-
-
 def trim_coordinates(coords):
     trimmed_coords = []
     for coord in coords:
@@ -332,3 +355,100 @@ def trim_coordinates(coords):
 
     return trimmed_coords
 
+if __name__ == "__main__":
+    # Test the function
+    coords = ["""92700N0614500E""", """AIRSPACE CLSD AS FLW:
+    1. AREA: 562754N0613603E-562733N0613819E-562114N0615223E-
+            562259N0615347E-562212N0615550E-561911N0615235E-
+            562335N0614103E-562344N0611805E-562526N0612208E-
+            562520N0613420E-562754N0613603E
+    500M AMSL-950M AMSL.
+    2. WI CIRCLE RADIUS 0.5KM CENTRE 562537N0613559E
+    SFC-900M AMSL.
+    3. WI CIRCLE RADIUS 0.5KM CENTRE 562727N0613647E
+    SFC-900M AMSL.
+    4. WI CIRCLE RADIUS 0.5KM CENTRE 562727N061364E"""]
+
+    # Extract coordinates
+    extracted_coords, invalid_coords = extract_coordinates('\n'.join(coords))
+    print('Extracted Coordinates:', extracted_coords)
+    print('Invalid Coordinates:', invalid_coords)
+
+    # Sort coordinates
+    sorted_coords = sort_coordinates(extracted_coords)
+    print('Sorted Coordinates:', sorted_coords)
+
+    # Get extremities
+    extremities_text = coordinate_extremities(sorted_coords)
+    print('Extremities:\n', extremities_text)
+
+    # Trim coordinates
+    trimmed_coords = trim_coordinates(extracted_coords)
+    print('Trimmed Coordinates:', trimmed_coords)
+
+    # Parse coordinates
+    parsed_coords = [parse_coordinate(coord) for coord in trimmed_coords]
+    print('Parsed Coordinates:', parsed_coords)
+
+    # Calculate convex hull
+    convex_hull_coords = convex_hull(parsed_coords)
+    print('Convex Hull:', convex_hull_coords)
+
+    # Calculate centroid
+    if parsed_coords:
+        centroid = (
+            sum(point[0] for point in parsed_coords) / len(parsed_coords),
+            sum(point[1] for point in parsed_coords) / len(parsed_coords)
+        )
+        print('Centroid:', centroid)
+    else:
+        print('No valid parsed coordinates to calculate centroid.')
+
+    # Calculate the area of the polygon
+    def polygon_area(coords):
+        if not coords:
+            return 0
+        area = 0
+        for i in range(len(coords)):
+            j = (i + 1) % len(coords)
+            area += coords[i][0] * coords[j][1]
+            area -= coords[j][0] * coords[i][1]
+        area = abs(area) / 2
+        return area
+
+    area = polygon_area(convex_hull_coords)
+    print('Area of Polygon:', area)
+
+    # Calculate the perimeter of the polygon
+    def polygon_perimeter(coords):
+        if not coords:
+            return 0
+        perimeter = 0
+        for i in range(len(coords)):
+            j = (i + 1) % len(coords)
+            perimeter += math.sqrt((coords[j][0] - coords[i][0])**2 + (coords[j][1] - coords[i][1])**2)
+        return perimeter
+
+    perimeter = polygon_perimeter(convex_hull_coords)
+    print('Perimeter of Polygon:', perimeter)
+
+    # Calculate the centroid of the polygon
+    def polygon_centroid(coords):
+        if not coords:
+            return (0, 0)
+        x = 0
+        y = 0
+        for i in range(len(coords)):
+            j = (i + 1) % len(coords)
+            factor = coords[i][0] * coords[j][1] - coords[j][0] * coords[i][1]
+            x += (coords[i][0] + coords[j][0]) * factor
+            y += (coords[i][1] + coords[j][1]) * factor
+        area = polygon_area(coords)
+        if area == 0:
+            return (0, 0)
+        x /= (6 * area)
+        y /= (6 * area)
+        return x, y
+
+    centroid_polygon = polygon_centroid(convex_hull_coords)
+    print('Centroid of Polygon:', centroid_polygon)
