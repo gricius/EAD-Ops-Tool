@@ -43,7 +43,8 @@ def extract_coordinates(text):
     ]
 
     # Clean the input text
-    cleaned_text = text.replace('\n', '').replace('\r', '').replace(' ', '').replace('/', '').replace(',', '').replace("'", "").replace('DEG', '').replace('-', '')
+    cleaned_text = text.replace('\n', '').replace('\r', '').replace(' ', '').replace('/', '').replace(',', '.').replace('-', '').replace('DEG', '').replace('MIN', '').replace("'", '').replace('SEC', '')    
+    print('Cleaned Text:', cleaned_text)
     coords = []
     invalid_coords = []
 
@@ -267,30 +268,40 @@ def coordinate_extremities(coords):
 
     # Functions to parse latitude and longitude from coordinate string
     def parse_lat(coord):
-        lat_deg = int(coord[0:2])
-        lat_min = int(coord[2:4])
-        lat_sec = int(coord[4:6])
-        lat_dir = coord[6]
-        # Calculate a comparable value
-        lat_value = lat_deg * 10000 + lat_min * 100 + lat_sec
+        if len(coord) == 15:  # Format with seconds
+            lat_deg = int(coord[0:2])
+            lat_min = int(coord[2:4])
+            lat_sec = int(coord[4:6])
+            lat_dir = coord[6]
+            # Calculate a comparable value
+            lat_value = lat_deg * 10000 + lat_min * 100 + lat_sec
+        else:  # Format without seconds
+            lat_deg = int(coord[0:2])
+            lat_min = int(coord[2:4])
+            lat_dir = coord[4]
+            # Calculate a comparable value
+            lat_value = lat_deg * 10000 + lat_min * 100
         if lat_dir == 'S':
             lat_value = -lat_value
-        return lat_value, coord[0:7]  # Return value and original lat part
+        return lat_value, coord[:7] if len(coord) == 15 else coord[:5]  # Return value and original lat part
 
     def parse_lon(coord):
-        lon_deg = int(coord[7:10])
-        lon_min = int(coord[10:12])
-        lon_sec = int(coord[12:14])
-        lon_dir = coord[14]
-        # Calculate a comparable value
-        lon_value = lon_deg * 10000 + lon_min * 100 + lon_sec
+        if len(coord) == 15:  # Format with seconds
+            lon_deg = int(coord[7:10])
+            lon_min = int(coord[10:12])
+            lon_sec = int(coord[12:14])
+            lon_dir = coord[14]
+            # Calculate a comparable value
+            lon_value = lon_deg * 10000 + lon_min * 100 + lon_sec
+        else:  # Format without seconds
+            lon_deg = int(coord[5:8])
+            lon_min = int(coord[8:10])
+            lon_dir = coord[10]
+            # Calculate a comparable value
+            lon_value = lon_deg * 10000 + lon_min * 100
         if lon_dir == 'W':
             lon_value = -lon_value
-        return lon_value, coord[7:15]  # Return value and original lon part
-
-    # Dictionaries to store the extremity coordinate parts
-    lat_dict = {}
-    lon_dict = {}
+        return lon_value, coord[7:15] if len(coord) == 15 else coord[5:11]  # Return value and original lon part
 
     # Iterate over all coordinates to find extremities
     for coord in coords:
