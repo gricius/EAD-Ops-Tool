@@ -44,7 +44,7 @@ def extract_coordinates(text):
 
     # Clean the input text
     cleaned_text = text.replace('\n', '').replace('\r', '').replace(' ', '').replace('/', '').replace(',', '.').replace('-', '').replace('DEG', '').replace('MIN', '').replace("'", '').replace('SEC', '')    
-    print('Cleaned Text:', cleaned_text)
+    #print('Cleaned Text:', cleaned_text)
     coords = []
     invalid_coords = []
 
@@ -68,7 +68,7 @@ def extract_coordinates(text):
             invalid_coord = format_coordinates(match)
             if invalid_coord:
                 invalid_coords.append(invalid_coord)
-                print('Invalid Coordinates:', invalid_coords)
+                #print('Invalid Coordinates:', invalid_coords)
     
     return coords, invalid_coords
 

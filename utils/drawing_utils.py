@@ -155,11 +155,11 @@ def minimal_enclosing_circle(points):
             if dist > max_dist:
                 max_dist = dist
         except Exception as e:
-            print(f"Error calculating geodesic distance for point {p}: {e}")
+            # print(f"Error calculating geodesic distance for point {p}: {e}")
             continue
 
     # Debugging Statements
-    print(f"Computed Circle Center: Latitude={center_lat}, Longitude={center_lon}, Radius={max_dist} NM")
+    # print(f"Computed Circle Center: Latitude={center_lat}, Longitude={center_lon}, Radius={max_dist} NM")
 
     return (center_lat, center_lon, max_dist)
 

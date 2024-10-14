@@ -34,7 +34,7 @@ def show_home(root, main_frame, current_theme):
             # print(f"Reading news from: {news_file_path}")
             # Read the Excel file using pandas
             df = pd.read_excel(news_file_path, sheet_name="Sheet1")
-            print("Excel file read successfully.")
+           # print("Excel file read successfully.")
 
             # Ensure the required columns are present
             expected_columns = {'Date', 'App', 'type', 'message'}
