@@ -520,7 +520,7 @@ def show_ino_tool(root, main_frame, current_theme):
 
     # Column 2: Original and Sorted canvases
     column_two_frame = tk.Frame(frame, highlightbackground=current_theme['highlightbackground'], highlightthickness=2, relief="raised")
-    column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
+    column_two_frame.grid(row=0, column=2, rowspan=5, padx=5, pady=5, sticky="nsew")
     column_two_frame.grid_rowconfigure(0, weight=1)
     column_two_frame.grid_columnconfigure(0, weight=1)
 
@@ -597,6 +597,9 @@ def show_ino_tool(root, main_frame, current_theme):
     ft_label.grid(row=1, column=2, padx=5, pady=5, sticky="e")
     ft_entry = tk.Entry(conversion_frame, width=10)
     ft_entry.grid(row=1, column=3, padx=5, pady=5)
+    # button without function
+    calc_dist_btn = tk.Button(conversion_frame, text="Calculate Distance", bg=current_theme['button_bg'], fg=current_theme['fg'], command=lambda: calc_dist_btn.focus_set())
+    calc_dist_btn.grid(row=2, column=0, padx=5, pady=5, columnspan=4)
 
     def convert_km_to_nm(event):
         try:
@@ -639,31 +642,36 @@ def show_ino_tool(root, main_frame, current_theme):
     mt_entry.bind("<FocusOut>", convert_mt_to_ft)
     ft_entry.bind("<FocusOut>", convert_ft_to_mt)
 
+    # fl fram
+    fl_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
+    fl_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
+    fl_frame.grid_columnconfigure(1, weight=1)
+
     # Flight level conversion
-    tk.Label(conversion_frame, text="NOF").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    nof_entry = tk.Entry(conversion_frame, width=10)
-    nof_entry.grid(row=2, column=1, padx=5, pady=5)
+    tk.Label(fl_frame, text="NOF").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    nof_entry = tk.Entry(fl_frame, width=6)
+    nof_entry.grid(row=0, column=1, padx=5, pady=5)
 
-    tk.Label(conversion_frame, text="Height").grid(row=2, column=2, padx=5, pady=5, sticky="e")
-    height_entry = tk.Entry(conversion_frame, width=10)
-    height_entry.grid(row=2, column=3, padx=5, pady=5)
+    tk.Label(fl_frame, text="Height").grid(row=0, column=2, padx=5, pady=5, sticky="e")
+    height_entry = tk.Entry(fl_frame, width=10)
+    height_entry.grid(row=0, column=3, padx=5, pady=5)
 
-    tk.Label(conversion_frame, text="UOM").grid(row=3, column=0, padx=5, pady=5)
+    tk.Label(fl_frame, text="UOM").grid(row=1, column=0, padx=5, pady=5)
     uom_var = tk.StringVar(value="M")
-    tk.Radiobutton(conversion_frame, text="M", variable=uom_var, value="M", selectcolor=current_theme['highlightbackground']).grid(row=3, column=1, padx=5, sticky="w")
-    tk.Radiobutton(conversion_frame, text="FT", variable=uom_var, value="FT", selectcolor=current_theme['highlightbackground']).grid(row=3, column=2, padx=5, sticky="w")
+    tk.Radiobutton(fl_frame, text="M", variable=uom_var, value="M", selectcolor=current_theme['highlightbackground']).grid(row=1, column=1, padx=5, sticky="w")
+    tk.Radiobutton(fl_frame, text="FT", variable=uom_var, value="FT", selectcolor=current_theme['highlightbackground']).grid(row=1, column=2, padx=5, sticky="w")
 
-    calculate_button = tk.Button(conversion_frame, text="Calculate", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, fl_result_entry, root))
-    calculate_button.grid(row=4, column=0, columnspan=2, pady=5, sticky="ew")
+    calculate_button = tk.Button(fl_frame, text="Calculate FL", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, fl_result_entry, root))
+    calculate_button.grid(row=2, column=1, pady=5, sticky="ew")
 
-    result_label = tk.Label(conversion_frame, text="Result")
-    result_label.grid(row=5, column=0, padx=5, pady=5, sticky="e")
-    fl_result_entry = tk.Entry(conversion_frame, width=10)
-    fl_result_entry.grid(row=5, column=1, padx=5, pady=5, columnspan=2)
+    # result_label = tk.Label(fl_frame, text="FL ")
+    # result_label.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+    fl_result_entry = tk.Entry(fl_frame, width=4)
+    fl_result_entry.grid(row=2, column=2, padx=5, pady=5, sticky="e")
 
     # Template frame
     template_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
-    template_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
+    template_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
     template_frame.grid_columnconfigure(1, weight=1)
 
     tpl_label = tk.Label(template_frame, text="Copy template:")
@@ -696,13 +704,13 @@ def show_ino_tool(root, main_frame, current_theme):
 
    # Abbreviation search frame
     abbreviation_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
-    abbreviation_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
+    abbreviation_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
     
-    abbr_entry = create_entry_with_label(abbreviation_frame, "Abbr.", 20, 0, 0)
-    decoded_entry = create_entry_with_label(abbreviation_frame, "Decoded", 20, 1, 0)
+    abbr_entry = create_entry_with_label(abbreviation_frame, "Abbr.", 15, 0, 0)
+    decoded_entry = create_entry_with_label(abbreviation_frame, "Decoded", 15, 1, 0)
 
     search_button = tk.Button(abbreviation_frame, text="Search", command=lambda: search_abbreviation(abbr_entry.get(), decoded_entry.get(), root, current_theme))
-    search_button.grid(row=2, column=0, columnspan=2, pady=5)
+    search_button.grid(row=1, column=2, pady=5, sticky="e")
 
     # Abbreviation result frame
     # result_frame = tk.Frame(frame)
@@ -710,7 +718,7 @@ def show_ino_tool(root, main_frame, current_theme):
 
      # Column 1: Show on map, original/sorted text, and copy buttons
     column_one_frame = tk.Frame(frame, bd=2, relief="raised")
-    column_one_frame.grid(row=0, column=1, rowspan=4, padx=5, pady=5, sticky="new")
+    column_one_frame.grid(row=0, column=1, rowspan=5, padx=5, pady=5, sticky="new")
     column_one_frame.grid_rowconfigure(0, weight=1)
     column_one_frame.grid_columnconfigure(0, weight=1)
 
@@ -814,7 +822,7 @@ def show_ino_tool(root, main_frame, current_theme):
 
     # Column 2: Oroginal and Sorted canvases
     column_two_frame = tk.Frame(frame, relief="raised", border=5)
-    column_two_frame.grid(row=0, column=2, rowspan=4, padx=5, pady=5, sticky="nsew")
+    column_two_frame.grid(row=0, column=2, rowspan=5, padx=5, pady=5, sticky="nsew")
     column_two_frame.grid_rowconfigure(0, weight=1)
     column_two_frame.grid_columnconfigure(0, weight=1)
 

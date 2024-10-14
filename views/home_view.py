@@ -26,7 +26,7 @@ def show_home(root, main_frame, current_theme):
         news_file_path = "news.xlsx"
         # print("Using local news.xlsx file.")
     else:
-        news_file_path = "Y:/99.Operator Folders/FRA/AG/news.xlsx"
+        news_file_path = "Y:/99. Operator Folders/FRA/AG/news.xlsx"
         # print("Local news.xlsx not found. Using network path:", news_file_path)
 
     try:
@@ -128,7 +128,8 @@ def show_home(root, main_frame, current_theme):
         text_widget.insert("end", "- Coordinates formatting for INO Polygon function, plotting on a map containing various airspace information.\n", "normal")
         text_widget.insert("end", "- Distance conversion between different units.\n", "normal")
         text_widget.insert("end", "- Flight level conversion between different units.\n", "normal")
-        text_widget.insert("end", "- Abbreviation tool for decoding abbreviations.\n\n", "normal")
+        text_widget.insert("end", "- Abbreviation tool for decoding abbreviations.\n", "normal")
+        text_widget.insert("end", "- A point calculation based on a given COORD, radial and a distance.\n\n", "normal")
 
         text_widget.insert("end", "ToDo\n", "section")
         text_widget.insert("end", "- Simple todo or notes list. Add and remove tasks.\n\n", "normal")
