@@ -650,6 +650,7 @@ def show_ino_tool(root, main_frame, current_theme):
     # Flight level conversion
     tk.Label(fl_frame, text="NOF").grid(row=0, column=0, padx=5, pady=5, sticky="e")
     nof_entry = tk.Entry(fl_frame, width=6)
+    nof_entry.config(validate="key", validatecommand=(root.register(lambda P: len(P) <= 4), '%P'))
     nof_entry.grid(row=0, column=1, padx=5, pady=5)
 
     tk.Label(fl_frame, text="Height").grid(row=0, column=2, padx=5, pady=5, sticky="e")
@@ -789,6 +790,7 @@ def show_ino_tool(root, main_frame, current_theme):
     radial_label = tk.Label(radial_distance_frame, text="RAD", bg=current_theme['bg'], fg=current_theme['fg'])
     radial_label.pack(side="left")
     radial_entry = tk.Entry(radial_distance_frame, width=5)
+    radial_entry.config(validate="key", validatecommand=(root.register(lambda P: len(P) <= 3), '%P'))
     radial_entry.pack(side="left", padx=(0, 10))  
 
     # Distance Label and Entry
