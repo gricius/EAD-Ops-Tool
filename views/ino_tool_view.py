@@ -525,7 +525,7 @@ def show_ino_tool(root, main_frame, current_theme):
     column_two_frame.grid_columnconfigure(0, weight=1)
 
     # Original canvas
-    original_canvas_frame = tk.Frame(column_two_frame, bg=current_theme['bg'], relief="raised", border=5)
+    original_canvas_frame = tk.Frame(column_two_frame, bg=current_theme['bg'], relief="raised")
     original_canvas = tk.Canvas(original_canvas_frame, width=320, height=320, bg=current_theme['canvas_bg'], border=0)
     original_canvas.grid(row=0, column=0, padx=5, pady=5)
 
@@ -718,7 +718,7 @@ def show_ino_tool(root, main_frame, current_theme):
     # result_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
 
      # Column 1: Show on map, original/sorted text, and copy buttons
-    column_one_frame = tk.Frame(frame, bd=2, relief="raised")
+    column_one_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
     column_one_frame.grid(row=0, column=1, rowspan=5, padx=5, pady=5, sticky="new")
     column_one_frame.grid_rowconfigure(0, weight=1)
     column_one_frame.grid_columnconfigure(0, weight=1)
@@ -735,7 +735,7 @@ def show_ino_tool(root, main_frame, current_theme):
     original_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
     # Original text
-    original_text = tk.Text(column_one_frame, height=12, width=19, bg=current_theme['bg'], fg=current_theme['fg'], insertbackground=current_theme['fg'])
+    original_text = tk.Text(column_one_frame, height=10, width=19, bg=current_theme['bg'], fg=current_theme['fg'], insertbackground=current_theme['fg'])
     original_text.grid(row=2, column=0, padx=5, pady=5)
 
     # Configure right alignment tag for original_text
@@ -773,18 +773,21 @@ def show_ino_tool(root, main_frame, current_theme):
     extremities_copy_button.grid(row=6, column=0, padx=5, pady=5, sticky="e")
 
     # new coordinate calculation 
-    # labael start_coord
-    start_coord_label = tk.Label(column_one_frame, text="Start Coord", bg=current_theme['bg'], fg=current_theme['fg'])
-    start_coord_label.grid(row=8, column=0, padx=5, pady=5, sticky="w")
+    # frame within coumn_one frame for new coordinate calculation
+    new_coord_frame = tk.Frame(column_one_frame, bg=current_theme['bg'], relief="raised", border=5)
+    new_coord_frame.grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
+
+    start_coord_label = tk.Label(new_coord_frame, text="COORD", bg=current_theme['bg'], fg=current_theme['fg'])
+    start_coord_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
     # Entry for start_coord
-    start_coord_entry = tk.Entry(column_one_frame, width=16)
-    start_coord_entry.grid(row=8, column=0, padx=5, pady=5, sticky="e")
+    start_coord_entry = tk.Entry(new_coord_frame, width=16)
+    start_coord_entry.grid(row=0, column=0, padx=5, pady=5, sticky="e")
 
     # Label radial
     # Create a frame to hold both labels and entries
-    radial_distance_frame = tk.Frame(column_one_frame, bg=current_theme['bg'], border=0)
-    radial_distance_frame.grid(row=10, column=0, padx=5, pady=5, sticky="w")
+    radial_distance_frame = tk.Frame(new_coord_frame, bg=current_theme['bg'], border=0)
+    radial_distance_frame.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
     # Radial Label and Entry
     radial_label = tk.Label(radial_distance_frame, text="RAD", bg=current_theme['bg'], fg=current_theme['fg'])
@@ -802,7 +805,7 @@ def show_ino_tool(root, main_frame, current_theme):
 
     # Calculate new coordinate button
     calculate_new_coord_button = tk.Button(
-    column_one_frame,
+    new_coord_frame,
     text="Calculate New COORD",
     command=lambda: calculate_new_coordinate(
             start_coord_entry.get(),
@@ -811,15 +814,15 @@ def show_ino_tool(root, main_frame, current_theme):
             result_entry
         )
     )
-    calculate_new_coord_button.grid(row=11, column=0, padx=5, pady=5, sticky="ew")
+    calculate_new_coord_button.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 
     # result label
-    result_label = tk.Label(column_one_frame, text="Result", bg=current_theme['bg'], fg=current_theme['fg'])
-    result_label.grid(row=12, column=0, padx=5, pady=5, sticky="w")
+    result_label = tk.Label(new_coord_frame, text="Result", bg=current_theme['bg'], fg=current_theme['fg'])
+    result_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
 
     # Entry for result
-    result_entry = tk.Entry(column_one_frame, width=12)
-    result_entry.grid(row=12, column=0, padx=5, pady=5, sticky="e")
+    result_entry = tk.Entry(new_coord_frame, width=12)
+    result_entry.grid(row=3, column=0, padx=5, pady=5, sticky="e")
 
 
     # Column 2: Oroginal and Sorted canvases

@@ -64,7 +64,7 @@ def create_main_window():
         print(f"Icon file not found at {icon_path}. Skipping icon setting.")
     
     root.title("EAD OPS Tool")
-    root.geometry("830x750")
+    root.geometry("860x750")
     root.attributes('-alpha', current_theme.get('window_alpha', 1.0))
 
     # Create a navigation bar frame
