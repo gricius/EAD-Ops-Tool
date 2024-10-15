@@ -348,6 +348,11 @@ def plot_coordinates(original_coords, sorted_coords):
 
     # Plot airports with updated bounding box calculations
     delta_deg = radius_nm * 1.852 / 110.574 + 5
+
+    # if delta_deg is less than 10 delta_deg = 10   
+    if delta_deg < 25:
+        delta_deg = 25
+    
     bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
     plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, radius_nm)
