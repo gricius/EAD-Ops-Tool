@@ -2,7 +2,8 @@
 import tkinter as tk
 import pandas as pd
 import os
-from tkinter import scrolledtext  # Import ScrolledText for better text display
+from tkinter import scrolledtext, messagebox
+from datetime import datetime
 
 def show_home(root, main_frame, current_theme):
     # Clear the main frame
@@ -15,8 +16,8 @@ def show_home(root, main_frame, current_theme):
     frame.pack(fill="both", expand=True)
 
     header = tk.Label(
-        frame, 
-        text="Disclaimer: This application can be used only for testing purposes.", 
+        frame,
+        text="Disclaimer: This application can be used only for testing purposes.",
         font=("Arial", 14)
     )
     header.pack(pady=10)
@@ -24,29 +25,22 @@ def show_home(root, main_frame, current_theme):
     # Determine the path to news.xlsx
     if os.path.exists("news.xlsx"):
         news_file_path = "news.xlsx"
-        # print("Using local news.xlsx file.")
     else:
         news_file_path = "Y:/99. Operator Folders/FRA/AG/news.xlsx"
-        # print("Local news.xlsx not found. Using network path:", news_file_path)
 
     try:
         if os.path.exists(news_file_path):
-            # print(f"Reading news from: {news_file_path}")
-            # Read the Excel file using pandas
             df = pd.read_excel(news_file_path, sheet_name="Sheet1")
-           # print("Excel file read successfully.")
 
             # Ensure the required columns are present
             expected_columns = {'Date', 'App', 'type', 'message'}
             actual_columns = set(df.columns)
-            # print("Columns in Excel file:", actual_columns)
             if not expected_columns.issubset(actual_columns):
                 missing = expected_columns - actual_columns
                 raise ValueError(f"Excel file is missing required columns: {missing}")
 
             # Convert 'Date' column to datetime if not already
             if not pd.api.types.is_datetime64_any_dtype(df['Date']):
-                # print("Converting 'Date' column to datetime.")
                 df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
             # Drop rows where all elements are NaN
@@ -66,31 +60,27 @@ def show_home(root, main_frame, current_theme):
 
             if not news_content.strip():
                 news_content = "No recent updates."
-                # print("News content is empty after processing.")
-            
         else:
-            # print("News file does not exist at:", news_file_path)
             news_content = "No recent updates."
     except Exception as e:
         news_content = f"Error reading news: {e}"
-        # print(news_content)
 
     # Title for the news section
     news_label_title = tk.Label(
-        frame, 
-        text='News, hints etc.:', 
+        frame,
+        text='News, hints etc.:',
         font=("Arial", 12)
     )
     news_label_title.pack(pady=10)
 
     # Display the news content using ScrolledText for better handling of large content
     news_text = scrolledtext.ScrolledText(
-        frame, 
-        wrap=tk.WORD, 
-        width=80, 
-        height=20, 
-        font=("Arial", 10, "italic"), 
-        bg=current_theme['bg'], 
+        frame,
+        wrap=tk.WORD,
+        width=80,
+        height=20,
+        font=("Arial", 10, "italic"),
+        bg=current_theme['bg'],
         fg=current_theme['fg']
     )
     news_text.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
@@ -149,10 +139,141 @@ def show_home(root, main_frame, current_theme):
         # Disable editing
         text_widget.config(state="disabled")
 
-    # Add a button to show modal top-level window information about the application
-    button = tk.Button(
-        frame, 
-        text="About the EAD OPS Tool", 
+    # Function to report an issue
+    def show_report_issue(parent):
+        # Create the Toplevel window
+        report_window = tk.Toplevel(parent)
+        report_window.title("Report an Issue")
+
+        # Create a frame for the input
+        input_frame = tk.Frame(report_window)
+        input_frame.pack(pady=10, padx=10)
+
+        # Label for the input
+        input_label = tk.Label(input_frame, text="Describe the issue:")
+        input_label.pack(anchor='w')
+
+        # Text widget for inputting the issue
+        issue_text = tk.Text(input_frame, wrap='word', width=80, height=10)
+        issue_text.pack()
+
+        # Submit button
+        submit_button = tk.Button(input_frame, text="Submit Issue", command=lambda: submit_issue())
+        submit_button.pack(pady=5)
+
+        # Function to handle submission
+        def submit_issue():
+            issue = issue_text.get("1.0", tk.END).strip()
+            if issue:
+                # Determine the path to issues.xlsx
+                if os.path.exists("issues.xlsx"):
+                    issues_file_path = "issues.xlsx"
+                else:
+                    issues_file_path = "Y:/99. Operator Folders/FRA/AG/issues.xlsx"
+
+                # Get current date and time
+                now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+                # Create or append to the Excel file
+                if os.path.exists(issues_file_path):
+                    # Read existing issues
+                    issues_df = pd.read_excel(issues_file_path)
+                else:
+                    # Create a new DataFrame
+                    issues_df = pd.DataFrame(columns=['Date', 'Issue', 'Status'])
+
+                # Append the new issue with Status
+                new_issue = {'Date': now, 'Issue': issue, 'Status': 'Submitted'}
+                new_issue_df = pd.DataFrame([new_issue])
+                issues_df = pd.concat([issues_df, new_issue_df], ignore_index=True)
+
+                # Save back to Excel
+                issues_df.to_excel(issues_file_path, index=False)
+
+                # Clear the input
+                issue_text.delete("1.0", tk.END)
+
+                # Refresh the issues display
+                display_issues()
+            else:
+                messagebox.showwarning("Input Error", "Please enter an issue before submitting.")
+
+        # ScrolledText widget to display the issues
+        issues_text = scrolledtext.ScrolledText(report_window, wrap='word', width=80, height=20)
+        issues_text.pack(pady=10, padx=10)
+
+        # Configure text tags for underlining
+        issues_text.tag_configure("underline", font=("Arial", 11, "underline", "bold"))
+
+        # Function to display issues
+        def display_issues():
+            # Determine the path to issues.xlsx
+            if os.path.exists("issues.xlsx"):
+                issues_file_path = "issues.xlsx"
+            else:
+                issues_file_path = "Y:/99. Operator Folders/FRA/AG/issues.xlsx"
+
+            # Check if the file exists
+            if os.path.exists(issues_file_path):
+                # Read the issues
+                issues_df = pd.read_excel(issues_file_path)
+
+                # Ensure 'Status' column exists
+                if 'Status' not in issues_df.columns:
+                    issues_df['Status'] = 'Submitted'
+
+                # Clear the text widget
+                issues_text.config(state='normal')
+                issues_text.delete("1.0", tk.END)
+
+                # Display issues with all columns and separator
+                separator = "-" * 80  # Separator line
+
+                for index, row in issues_df.iterrows():
+                    date = row['Date']
+                    issue = row['Issue']
+                    status = row['Status']
+
+                    # Insert Date
+                    issues_text.insert(tk.END, f"Date: {date}\n")
+
+                    # Insert Issue label with underline
+                    issues_text.insert(tk.END, "Issue: ", "underline")
+                    issues_text.insert(tk.END, f"{issue}\n")
+
+                    # Insert Status label with underline
+                    issues_text.insert(tk.END, "Status: ", "underline")
+                    issues_text.insert(tk.END, f"{status}\n")
+
+                    # Insert Separator
+                    issues_text.insert(tk.END, f"{separator}\n\n")
+
+                issues_text.config(state='disabled')
+            else:
+                issues_text.config(state='normal')
+                issues_text.delete("1.0", tk.END)
+                issues_text.insert(tk.END, "No issues reported yet.")
+                issues_text.config(state='disabled')
+
+        # Initially display the issues
+        display_issues()
+
+    # Create a frame for the buttons
+    button_frame = tk.Frame(frame)
+    button_frame.pack(pady=10)
+
+    # Add the "About the EAD OPS Tool" button
+    about_button = tk.Button(
+        button_frame,
+        text="About the EAD OPS Tool",
         command=lambda: show_info(root)
     )
-    button.pack(pady=10)
+    about_button.pack(side='left', padx=5)
+
+    # Add the "Report an Issue" button
+    report_button = tk.Button(
+        button_frame,
+        text="Report an Issue",
+        command=lambda: show_report_issue(root)
+    )
+    report_button.pack(side='left', padx=5)
