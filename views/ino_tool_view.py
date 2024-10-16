@@ -374,7 +374,7 @@ def calculate_flight_level_value(result, height_value, uom_value):
     elif uom_value == "FT":
         selected_value = result.iloc[0, 5] * 100
         height_value = int(height_value) + 49
-        return round(selected_value / 100)
+        return round((selected_value + height_value) / 100)
 
 def create_entry_with_label(parent, label_text, entry_width, row, column):
     """Helper function to create a label and entry widget."""
