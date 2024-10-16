@@ -397,8 +397,6 @@ def plot_coordinates(original_coords, sorted_coords):
         category=UserWarning,
         module="matplotlib"
     )
-
-    plt.title("Map with FIR Boundary and Coordinates")
     plt.show()
 
 
