@@ -218,14 +218,23 @@ def plot_great_circle_circle(ax, lon, lat, radius_nm, color, label):
 
     ax.plot(lons, lats, color=color, linestyle='--', transform=Geodetic(), label=label)
 
-def plot_base_map(ax, countries_gdf, disputed_areas_gdf, elevation_points_gdf):
-    # Plot countries
-    countries_gdf.plot(ax=ax, edgecolor='black', facecolor='tan', transform=geodetic_spherical)
+def plot_base_map(ax, disputed_areas_gdf, elevation_points_gdf, fir_gdf):
+    # # Plot countries
+    # countries_gdf.plot(ax=ax, edgecolor='black', facecolor='tan', transform=geodetic_spherical)
     
-    # Plot country names
-    for _, country in countries_gdf.iterrows():
-        centroid = country.geometry.centroid
-        ax.text(centroid.x, centroid.y, country['NAME'], fontsize=10, color='black', transform=geodetic_spherical)
+    # # Plot country names
+    # for _, country in countries_gdf.iterrows():
+    #     centroid = country.geometry.centroid
+    #     ax.text(centroid.x, centroid.y, country['NAME'], fontsize=10, color='black', transform=geodetic_spherical)
+
+    # plot fir DESG
+    fir_gdf.plot(ax=ax, edgecolor='black', facecolor='cyan', alpha=0.3, transform=ccrs.PlateCarree(), label="FIR Boundary")
+
+    for _, fir in fir_gdf.iterrows():
+        centroid = fir.geometry.centroid
+        ax.text(centroid.x, centroid.y, fir['DESG'], fontsize=8, color='black', transform=geodetic_spherical)
+    
+
     
     # Plot disputed areas
     disputed_areas_gdf.plot(ax=ax, edgecolor='red', facecolor='none', linestyle='--', transform=geodetic_spherical, label="Disputed Areas")
@@ -333,23 +342,29 @@ def plot_coordinates(original_coords, sorted_coords):
 
     # Load and plot base map layers
     plot_base_map(ax, 
-                  load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
+                #   load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
-                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'))
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
+                  load_shapefile('fir.shp', target_crs="EPSG:4326"))
+    
+    # Load FIR shapefile and filter by TYPE = "FIR"
+    fir_gdf = load_shapefile('fir.shp', target_crs="EPSG:4326")
+    fir_gdf = fir_gdf[fir_gdf['TYPE'] == 'FIR']  # Filter for TYPE == "FIR"
+    
+    # Plot the filtered FIR data
+    fir_gdf.plot(ax=ax, edgecolor='black', facecolor='cyan', alpha=0.3, transform=ccrs.PlateCarree(), label="FIR Boundary")
 
-    # Plot original and sorted coordinates with updated functions
+    # Plot original and sorted coordinates
     ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=Geodetic(), label='Original Coordinates')
     ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red', transform=Geodetic(), label='Sorted Coordinates')
 
-    # Minimal enclosing circle update
+    # Minimal enclosing circle
     sorted_points = list(zip(sorted_lats, sorted_lons))
     center_lat, center_lon, radius_nm = minimal_enclosing_circle(sorted_points)
     plot_great_circle_circle(ax, center_lon, center_lat, radius_nm, 'green', f'{radius_nm:.2f} NM Enclosing Circle')
 
-    # Plot airports with updated bounding box calculations
+    # Plot airports within bounding box
     delta_deg = radius_nm * 1.852 / 110.574 + 5
-
-    # if delta_deg is less than 10 delta_deg = 10   
     if delta_deg < 25:
         delta_deg = 25
     
@@ -359,14 +374,15 @@ def plot_coordinates(original_coords, sorted_coords):
 
     # Finalize plot with legend and interactive features
     legend_elements = [
+        Patch(facecolor='cyan', edgecolor='black', alpha=0.3, label='FIR Boundary'),
         Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
         Line2D([0], [0], marker='o', color='blue', label='Original Coordinates',
-            markerfacecolor='blue', markersize=5, linestyle='-'),
+               markerfacecolor='blue', markersize=5, linestyle='-'),
         Line2D([0], [0], marker='o', color='red', label='Sorted Coordinates',
-            markerfacecolor='red', markersize=5, linestyle='-'),
+               markerfacecolor='red', markersize=5, linestyle='-'),
         Line2D([0], [0], color='green', linestyle='--', label=f'{radius_nm:.2f} NM Enclosing Circle'),
         Line2D([0], [0], marker='*', color='black', label='Airport',
-            markerfacecolor='black', markersize=6, linestyle='None')
+               markerfacecolor='black', markersize=6, linestyle='None')
     ]
     
     fig.canvas.mpl_connect('scroll_event', on_scroll)
@@ -382,7 +398,9 @@ def plot_coordinates(original_coords, sorted_coords):
         module="matplotlib"
     )
 
+    plt.title("Map with FIR Boundary and Coordinates")
     plt.show()
+
 
     # # Define custom legend handles
     # legend_elements = [
@@ -432,7 +450,7 @@ def show_single_coord_on_map(coord):
 
     # Load shapefiles with target CRS as EPSG:4326 to match Plate Carree
     plot_base_map(ax, 
-                  load_shapefile('shapes/ne_50m_admin_0_countries.shp', target_crs="EPSG:4326"), 
+                #   load_shapefile('shapes/ne_50m_admin_0_countries.shp', target_crs="EPSG:4326"), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp', target_crs="EPSG:4326"),
                   load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp', target_crs="EPSG:4326"))
 
