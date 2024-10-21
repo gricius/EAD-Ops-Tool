@@ -345,7 +345,7 @@ def plot_coordinates(original_coords, sorted_coords):
                 #   load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
                   load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
-                  load_shapefile('fir.shp', target_crs="EPSG:4326"))
+                  load_shapefile('shapes/fir.shp', target_crs="EPSG:4326"))
     
     # Load FIR shapefile and filter by TYPE = "FIR"
     fir_gdf = load_shapefile('fir.shp', target_crs="EPSG:4326")
