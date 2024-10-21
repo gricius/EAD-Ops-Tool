@@ -227,12 +227,15 @@ def plot_base_map(ax, disputed_areas_gdf, elevation_points_gdf, fir_gdf):
     #     centroid = country.geometry.centroid
     #     ax.text(centroid.x, centroid.y, country['NAME'], fontsize=10, color='black', transform=geodetic_spherical)
 
-    # plot fir DESG
+    # Plot FIRs
     fir_gdf.plot(ax=ax, edgecolor='black', facecolor='cyan', alpha=0.3, transform=ccrs.PlateCarree(), label="FIR Boundary")
 
-    for _, fir in fir_gdf.iterrows():
-        centroid = fir.geometry.centroid
-        ax.text(centroid.x, centroid.y, fir['DESG'], fontsize=8, color='black', transform=geodetic_spherical)
+    for idx, fir in fir_gdf.iterrows():
+        if fir.geometry is not None and not fir.geometry.is_empty:
+            centroid = fir.geometry.centroid
+            ax.text(centroid.x, centroid.y, fir['DESG'], fontsize=8, color='black', transform=geodetic_spherical)
+        else:
+            print(f"Warning: Geometry is None or empty for FIR with index {idx} and DESG '{fir['DESG']}'")
     
 
     
@@ -347,13 +350,6 @@ def plot_coordinates(original_coords, sorted_coords):
                   load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
                   load_shapefile('shapes/fir.shp', target_crs="EPSG:4326"))
     
-    # Load FIR shapefile and filter by TYPE = "FIR"
-    fir_gdf = load_shapefile('fir.shp', target_crs="EPSG:4326")
-    fir_gdf = fir_gdf[fir_gdf['TYPE'] == 'FIR']  # Filter for TYPE == "FIR"
-    
-    # Plot the filtered FIR data
-    fir_gdf.plot(ax=ax, edgecolor='black', facecolor='cyan', alpha=0.3, transform=ccrs.PlateCarree(), label="FIR Boundary")
-
     # Plot original and sorted coordinates
     ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=Geodetic(), label='Original Coordinates')
     ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red', transform=Geodetic(), label='Sorted Coordinates')
@@ -399,40 +395,7 @@ def plot_coordinates(original_coords, sorted_coords):
     )
     plt.show()
 
-
-    # # Define custom legend handles
-    # legend_elements = [
-    #     Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
-    #     Line2D([0], [0], marker='o', color='blue', label='Original Coordinates',
-    #         markerfacecolor='blue', markersize=5, linestyle='-'),
-    #     Line2D([0], [0], marker='o', color='red', label='Sorted Coordinates',
-    #         markerfacecolor='red', markersize=5, linestyle='-'),
-    #     Line2D([0], [0], color='green', linestyle='--', label=f'{radius_nm:.2f} NM Enclosing Circle'),
-    #     Line2D([0], [0], marker='*', color='black', label='Airports',
-    #         markerfacecolor='black', markersize=6, linestyle='None')
-    # ]
-    
-    # # Connect the scroll event to the handler
-    # fig.canvas.mpl_connect('scroll_event', on_scroll)
-
-    # # Add custom legend
-    # ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
-    
-    # ax.format_coord = lambda x, y: format_coord(x, y)
-
-    # # Suppress only warnings that contain "glyph 133" or specific to \x85
-    # warnings.filterwarnings(
-    #     "ignore",
-    #     message=".*glyph 133.*",
-    #     category=UserWarning,
-    #     module="matplotlib"
-    # )
-
-    # plt.show()
-
-
-
-
+   
 def show_single_coord_on_map(coord):
     lat, lon = parse_coordinate(coord)
     if lat is None or lon is None:
