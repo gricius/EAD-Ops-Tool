@@ -14,15 +14,12 @@ import sys
 import os
 from utils.coordinate_utils import parse_coordinate
 from utils.coordinate_utils import convex_hull
-# from geopy.distance import great_circle  
 from geopy.distance import geodesic
 import warnings
 from osgeo import gdal
 import mplcursors
-# import random
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
-# from shapely.geometry import MultiPoint
 
 def set_gdal_data_path():
     """Set the GDAL data path based on whether the script is running from PyInstaller or development."""
@@ -336,23 +333,40 @@ def plot_coordinates(original_coords, sorted_coords):
     original_lats, original_lons = zip(*parsed_original_coords)
     sorted_lats, sorted_lons = zip(*parsed_sorted_coords)
 
+    # Enable constrained_layout for automatic adjustment
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': plate_carree_spherical})
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    margin = 1.7
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+
+    
+    # Alternatively, if constrained_layout causes issues with Cartopy, use subplots_adjust
+    # fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': plate_carree_spherical})
+    # plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+
+    margin = 0.5  # Adjust margin as needed
     min_lon, max_lon = min(original_lons) - margin, max(original_lons) + margin
     min_lat, max_lat = min(original_lats) - margin, max(original_lats) + margin
     ax.set_extent([min_lon, max_lon, min_lat, max_lat], crs=plate_carree_spherical)
 
     # Load and plot base map layers
     plot_base_map(ax, 
-                #   load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp', target_crs="EPSG:4326"),
                   load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp', target_crs="EPSG:4326"),
                   load_shapefile('shapes/fir.shp', target_crs="EPSG:4326"))
     
     # Plot original and sorted coordinates
-    ax.plot(original_lons, original_lats, marker='o', markersize=5, linestyle='-', color='blue', transform=Geodetic(), label='Original Coordinates')
-    ax.plot(sorted_lons, sorted_lats, marker='o', markersize=5, linestyle='-', color='red', transform=Geodetic(), label='Sorted Coordinates')
+    for i, (lon, lat) in enumerate(zip(original_lons, original_lats)):
+        ax.plot(lon, lat, marker='o', markersize=5, linestyle='-', color='blue', transform=Geodetic(), label='Original Coordinates' if i == 0 else "")
+        ax.text(lon, lat, str(i + 1), fontsize=10, ha='left', va='top', color='white', 
+                bbox=dict(facecolor='blue', edgecolor='black', boxstyle='circle,pad=0.3'), transform=Geodetic())
+        if i > 0:
+            ax.plot([original_lons[i-1], lon], [original_lats[i-1], lat], color='blue', linestyle='-', transform=Geodetic())
+
+    for i, (lon, lat) in enumerate(zip(sorted_lons, sorted_lats)):
+        ax.plot(lon, lat, marker='o', markersize=5, linestyle='-', color='red', transform=Geodetic(), label='Sorted Coordinates' if i == 0 else "")
+        ax.text(lon, lat, str(i + 1), fontsize=10, ha='right', va='bottom', color='white', 
+                bbox=dict(facecolor='red', edgecolor='black', boxstyle='circle,pad=0.3'), transform=Geodetic())
+        if i > 0:
+            ax.plot([sorted_lons[i-1], lon], [sorted_lats[i-1], lat], color='red', linestyle='-', transform=Geodetic())
 
     # Minimal enclosing circle
     sorted_points = list(zip(sorted_lats, sorted_lons))
@@ -360,11 +374,17 @@ def plot_coordinates(original_coords, sorted_coords):
     plot_great_circle_circle(ax, center_lon, center_lat, radius_nm, 'green', f'{radius_nm:.2f} NM Enclosing Circle')
 
     # Plot airports within bounding box
-    delta_deg = radius_nm * 1.852 / 110.574 + 5
+    delta_deg = 5 * 1.852 / 110.574 + 5
     if delta_deg < 25:
         delta_deg = 25
-    
-    bounding_box = box(center_lon - delta_deg, center_lat - delta_deg, center_lon + delta_deg, center_lat + delta_deg)
+
+    # Construct extremity coordinates
+    northwest = (min_lon - delta_deg, max_lat + delta_deg)
+    northeast = (max_lon + delta_deg, max_lat + delta_deg)
+    southwest = (min_lon - delta_deg, min_lat - delta_deg)
+    southeast = (max_lon + delta_deg, min_lat - delta_deg)
+
+    bounding_box = box(*northwest, *southeast)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
     plot_airports(ax, bounding_box, airports_gdf, center_lat, center_lon, radius_nm)
 
@@ -394,27 +414,45 @@ def plot_coordinates(original_coords, sorted_coords):
         module="matplotlib"
     )
 
-    ax.gridlines(draw_labels=True)
+    # Customize gridlines to have labels only on left and bottom
+    gl = ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.left_labels = True
+    gl.bottom_labels = True
+    gl.xlabel_style = {'size': 10, 'color': 'black'}
+    gl.ylabel_style = {'size': 10, 'color': 'black'}
+
+    ax.set_aspect('auto')
+
+    # add title to the plot: "Original and Sorted Coordinates. Center: (lat, lon)."
+    # formatted_lon = decimal_degrees_to_dms(lon, is_lat=False)
+    # formatted_lat = decimal_degrees_to_dms(lat, is_lat=True)
+    # ax.set_title(
+    #     f"Coordinate: {formatted_lat}, {formatted_lon}.",
+    #     fontsize=12
+    # )
 
     plt.show()
 
-   
 def show_single_coord_on_map(coord):
     lat, lon = parse_coordinate(coord)
     if lat is None or lon is None:
         messagebox.showwarning('Warning', 'Invalid coordinate for plotting.')
         return
 
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': plate_carree_spherical})
-    # Remove padding around the plot
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    # Enable constrained_layout for automatic adjustment
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': plate_carree_spherical}, constrained_layout=True)
+    
+    # Alternatively, if constrained_layout causes issues with Cartopy, use subplots_adjust
+    # fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': plate_carree_spherical})
+    # plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
 
-    extent_margin = 0.5  # Increased margin for better visibility
+    extent_margin = 0.5  # Adjust margin as needed
     ax.set_extent([lon - extent_margin, lon + extent_margin, lat - extent_margin, lat + extent_margin], crs=ccrs.PlateCarree())
 
     # Load shapefiles with target CRS as EPSG:4326 to match Plate Carree
     plot_base_map(ax, 
-                #   load_shapefile('shapes/ne_50m_admin_0_countries.shp', target_crs="EPSG:4326"), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp', target_crs="EPSG:4326"),
                   load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp', target_crs="EPSG:4326"),
                   load_shapefile('shapes/fir.shp', target_crs="EPSG:4326"))
@@ -427,39 +465,18 @@ def show_single_coord_on_map(coord):
     plot_great_circle_circle(ax, lon, lat, 1, 'blue', '1NM Radius')
     plot_great_circle_circle(ax, lon, lat, 5, 'red', '5NM Radius')
 
-   
     delta_deg = 5 * 1.852 / 110.574 + 5
     bounding_box = box(lon - delta_deg, lat - delta_deg, lon + delta_deg, lat + delta_deg)
     airports_gdf = load_shapefile('shapes/world_airports.shp', target_crs="EPSG:3857")
-    plot_airports(ax, bounding_box, airports_gdf, lat, lon,10 + 20)
+    plot_airports(ax, bounding_box, airports_gdf, lat, lon, 30)  # 10 + 20 = 30
 
-    # Add mouse scroll event handler for zooming
-    def on_scroll(event):
-        base_scale = 2.0  # Zoom factor
-        if event.button == 'up':
-            scale_factor = 1 / base_scale
-        elif event.button == 'down':
-            scale_factor = base_scale
-        else:
-            return
-
-        x0, x1, y0, y1 = ax.get_extent(crs=ccrs.PlateCarree())
-        x_center = (x0 + x1) / 2
-        y_center = (y0 + y1) / 2
-        x_width = (x1 - x0) * scale_factor / 2
-        y_height = (y1 - y0) * scale_factor / 2
-        new_extent = [x_center - x_width, x_center + x_width,
-                      y_center - y_height, y_center + y_height]
-        ax.set_extent(new_extent, crs=ccrs.PlateCarree())
-        plt.draw()
-
-       
+    # Finalize plot with legend and interactive features
     legend_elements = [
         Patch(facecolor='none', edgecolor='red', linestyle='--', label='Disputed Areas'),
         Line2D([0], [0], marker='*', color='black', label='Airport',
-            markerfacecolor='black', markersize=6, linestyle='None'),
+               markerfacecolor='black', markersize=6, linestyle='None'),
         Line2D([0], [0], marker='o', color='blue', label='Coordinate',
-            markerfacecolor='blue', markersize=8, linestyle='None'),
+               markerfacecolor='blue', markersize=8, linestyle='None'),
         Line2D([0], [0], color='blue', linestyle='--', label='1NM Radius'),
         Line2D([0], [0], color='red', linestyle='--', label='5NM Radius')
     ]
@@ -480,10 +497,19 @@ def show_single_coord_on_map(coord):
         module="matplotlib"
     )
 
-    #ax.coastlines()
-    ax.gridlines(draw_labels=True)
-    
+    # Customize gridlines to have labels only on left and bottom
+    gl = ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.left_labels = True
+    gl.bottom_labels = True
+    gl.xlabel_style = {'size': 10, 'color': 'black'}
+    gl.ylabel_style = {'size': 10, 'color': 'black'}
+
+    ax.set_aspect('auto')
+
     plt.show()
+
 
 def show_on_map(original_coords, sorted_coords):
     if len(original_coords) == 1:
