@@ -204,8 +204,8 @@ def calculate_new_coordinate(start_coord, radial, distance_nm, result_entry):
     lon_min_str = f"{lon_min_int:02d}"
 
     new_coord = f"{lat_deg_str}{lat_min_str}{lat_hemi}{lon_deg_str}{lon_min_str}{lon_hemi}"
-    result_entry.delete(0, tk.END)  
-    result_entry.insert(0, new_coord)  
+    result_entry.delete(0, tk.END)
+    result_entry.insert(0, new_coord)
     # print(new_coord)
     return new_coord
 
@@ -234,7 +234,7 @@ def search_abbreviation(abbr_text, decoded_text, root, current_theme):
         # Open a modal pop-up window
         result_popup = tk.Toplevel(root)
         result_popup.title("Search Results")
-        
+
         # Set the background color for dark mode
         result_popup.configure(bg=current_theme['bg'])
 
@@ -243,17 +243,17 @@ def search_abbreviation(abbr_text, decoded_text, root, current_theme):
 
         # Create a scrollable frame in the pop-up
         canvas = tk.Canvas(
-            result_popup, 
-            highlightbackground=current_theme['highlightbackground'], 
-            highlightthickness=2, 
+            result_popup,
+            highlightbackground=current_theme['highlightbackground'],
+            highlightthickness=2,
             relief="raised",
             bg=current_theme['bg']
         )
         scrollbar = tk.Scrollbar(result_popup, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(
-            canvas, 
-            highlightbackground=current_theme['highlightbackground'], 
-            highlightthickness=2, 
+            canvas,
+            highlightbackground=current_theme['highlightbackground'],
+            highlightthickness=2,
             relief="raised",
             bg=current_theme['bg']
         )
@@ -306,7 +306,7 @@ def create_result_widgets(result_frame, index, abbr, decoded, sheet_name, root, 
         result_frame.winfo_toplevel().destroy()
 
     copy_button = tk.Button(
-        result_frame, 
+        result_frame,
         text="Copy",
         command=on_copy,
         bg=current_theme['button_bg'],
@@ -322,7 +322,7 @@ def create_result_widgets(result_frame, index, abbr, decoded, sheet_name, root, 
         result_frame.winfo_toplevel().destroy()
 
     copy_button = tk.Button(
-        result_frame, 
+        result_frame,
         text="Copy",
         command=on_copy,
         bg=current_theme['button_bg'],
@@ -496,7 +496,7 @@ def show_ino_tool(root, main_frame, current_theme):
     frame = tk.Frame(main_frame, cursor="cross", highlightbackground=current_theme['highlightbackground'], highlightthickness=2, highlightcolor=current_theme['highlightbackground'])
     frame.grid(sticky="nsew", padx=5, pady=5)
 
-   
+
 
     # Configure grid weights for responsiveness
     frame.grid_rowconfigure(0, weight=1)
@@ -662,11 +662,13 @@ def show_ino_tool(root, main_frame, current_theme):
     tk.Radiobutton(fl_frame, text="M", variable=uom_var, value="M", selectcolor=current_theme['highlightbackground']).grid(row=1, column=1, padx=5, sticky="w")
     tk.Radiobutton(fl_frame, text="FT", variable=uom_var, value="FT", selectcolor=current_theme['highlightbackground']).grid(row=1, column=2, padx=5, sticky="w")
 
-    calculate_button = tk.Button(fl_frame, text="Calculate FL", command=lambda: calculate_flight_level(nof_entry, uom_var, height_entry, fl_result_entry, root))
+    calculate_button = tk.Button(fl_frame, text="Calculate & Copy FL", command=lambda: [
+        calculate_flight_level(nof_entry, uom_var, height_entry, fl_result_entry, root),
+        copy_to_clipboard(root, fl_result_entry.get(), calculate_button)
+    ])
+    
     calculate_button.grid(row=2, column=1, pady=5, sticky="ew")
 
-    # result_label = tk.Label(fl_frame, text="FL ")
-    # result_label.grid(row=2, column=1, padx=5, pady=5, sticky="w")
     fl_result_entry = tk.Entry(fl_frame, width=4)
     fl_result_entry.grid(row=2, column=2, padx=5, pady=5, sticky="e")
 
@@ -696,17 +698,17 @@ def show_ino_tool(root, main_frame, current_theme):
     # Create copy buttons for the first three templates
     copy_template1_button = tk.Button(template_frame, text=" #  1  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[0]), copy_template1_button))
     copy_template1_button.grid(row=0, column=1, padx=5, pady=5, sticky="w")
-    
+
     copy_template2_button = tk.Button(template_frame, text="  # 2  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[1]), copy_template2_button))
     copy_template2_button.grid(row=0, column=2, padx=5, pady=5, sticky="w")
-    
+
     copy_template3_button = tk.Button(template_frame, text="  # 3  ", command=lambda: copy_to_clipboard(root, get_template_content(first_three_templates[2]), copy_template3_button))
     copy_template3_button.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
    # Abbreviation search frame
     abbreviation_frame = tk.Frame(frame, bd=2, relief="raised", border=5)
     abbreviation_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
-    
+
     abbr_entry = create_entry_with_label(abbreviation_frame, "Abbr.", 15, 0, 0)
     decoded_entry = create_entry_with_label(abbreviation_frame, "Decoded", 15, 1, 0)
 
@@ -772,7 +774,7 @@ def show_ino_tool(root, main_frame, current_theme):
     ))
     extremities_copy_button.grid(row=6, column=0, padx=5, pady=5, sticky="e")
 
-    # new coordinate calculation 
+    # new coordinate calculation
     # frame within coumn_one frame for new coordinate calculation
     new_coord_frame = tk.Frame(column_one_frame, bg=current_theme['bg'], relief="raised", border=5)
     new_coord_frame.grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
@@ -794,7 +796,7 @@ def show_ino_tool(root, main_frame, current_theme):
     radial_label.pack(side="left")
     radial_entry = tk.Entry(radial_distance_frame, width=5)
     radial_entry.config(validate="key", validatecommand=(root.register(lambda P: len(P) <= 3), '%P'))
-    radial_entry.pack(side="left", padx=(0, 10))  
+    radial_entry.pack(side="left", padx=(0, 10))
 
     # Distance Label and Entry
     distance_label = tk.Label(radial_distance_frame, text="Dist.(NM)", bg=current_theme['bg'], fg=current_theme['fg'])

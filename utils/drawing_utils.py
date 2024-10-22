@@ -475,6 +475,9 @@ def show_single_coord_on_map(coord):
         category=UserWarning,
         module="matplotlib"
     )
+
+    ax.coastlines()
+    ax.gridlines(draw_labels=True)
     
     plt.show()
 
