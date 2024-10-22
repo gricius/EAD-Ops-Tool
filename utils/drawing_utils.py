@@ -346,8 +346,8 @@ def plot_coordinates(original_coords, sorted_coords):
     # Load and plot base map layers
     plot_base_map(ax, 
                 #   load_shapefile('shapes/ne_50m_admin_0_countries.shp'), 
-                  load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp'),
-                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp'),
+                  load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp', target_crs="EPSG:4326"),
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp', target_crs="EPSG:4326"),
                   load_shapefile('shapes/fir.shp', target_crs="EPSG:4326"))
     
     # Plot original and sorted coordinates
@@ -393,6 +393,9 @@ def plot_coordinates(original_coords, sorted_coords):
         category=UserWarning,
         module="matplotlib"
     )
+
+    ax.gridlines(draw_labels=True)
+
     plt.show()
 
    
@@ -413,7 +416,8 @@ def show_single_coord_on_map(coord):
     plot_base_map(ax, 
                 #   load_shapefile('shapes/ne_50m_admin_0_countries.shp', target_crs="EPSG:4326"), 
                   load_shapefile('shapes/ne_50m_admin_0_breakaway_disputed_areas.shp', target_crs="EPSG:4326"),
-                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp', target_crs="EPSG:4326"))
+                  load_shapefile('shapes/ne_50m_geography_regions_elevation_points.shp', target_crs="EPSG:4326"),
+                  load_shapefile('shapes/fir.shp', target_crs="EPSG:4326"))
 
     # Plot the coordinate point
     ax.plot(lon, lat, marker='o', color='blue', markersize=8, transform=ccrs.PlateCarree(), label=f'{coord}')
@@ -476,7 +480,7 @@ def show_single_coord_on_map(coord):
         module="matplotlib"
     )
 
-    ax.coastlines()
+    #ax.coastlines()
     ax.gridlines(draw_labels=True)
     
     plt.show()
